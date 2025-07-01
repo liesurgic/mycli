@@ -1,0 +1,19 @@
+{
+  "name": "myreal",
+  "description": "A CLI module for myreal",
+  "version": "1.0.0",
+  "commands": [
+    {
+      "name": "hello",
+      "description": "Say hello",
+      "flags": [
+        {
+          "name": "name",
+          "description": "Name to greet",
+          "required": false,
+          "default": "World"
+        }
+      ]
+    }
+  ]
+}

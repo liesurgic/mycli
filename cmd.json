@@ -1,0 +1,105 @@
+{
+    "commands": [
+        {
+            "name": "help",
+            "description": "Show help information",
+            "flags": [
+                {
+                    "name": "verbose",
+                    "shorthand": "v",
+                    "description": "Show verbose help with examples"
+                }
+            ]
+        },
+        {
+            "name": "init",
+            "description": "Initialize a new CLI project",
+            "flags": [
+                {
+                    "name": "name",
+                    "shorthand": "n",
+                    "description": "Name of the CLI project"
+                },
+                {
+                    "name": "force",
+                    "shorthand": "f",
+                    "description": "Force overwrite existing files"
+                },
+                {
+                    "name": "template",
+                    "shorthand": "t",
+                    "description": "Template to use (basic, advanced, minimal)"
+                }
+            ]
+        },
+        {
+            "name": "package",
+            "description": "Package the current CLI project",
+            "flags": [
+                {
+                    "name": "output",
+                    "shorthand": "o",
+                    "description": "Output directory for the package"
+                },
+                {
+                    "name": "clean",
+                    "shorthand": "c",
+                    "description": "Clean build directory before packaging"
+                }
+            ]
+        },
+        {
+            "name": "install",
+            "description": "Install the current CLI project",
+            "flags": [
+                {
+                    "name": "global",
+                    "shorthand": "g",
+                    "description": "Install globally (requires sudo)"
+                },
+                {
+                    "name": "user",
+                    "shorthand": "u",
+                    "description": "Install for current user only"
+                }
+            ]
+        },
+        {
+            "name": "create",
+            "description": "Create a new module or command",
+            "flags": [
+                {
+                    "name": "module",
+                    "shorthand": "m",
+                    "description": "Create a new module"
+                },
+                {
+                    "name": "command",
+                    "shorthand": "c",
+                    "description": "Create a new command"
+                },
+                {
+                    "name": "template",
+                    "shorthand": "t",
+                    "description": "Template to use"
+                }
+            ]
+        },
+        {
+            "name": "list",
+            "description": "List installed modules and commands",
+            "flags": [
+                {
+                    "name": "verbose",
+                    "shorthand": "v",
+                    "description": "Show detailed information"
+                },
+                {
+                    "name": "json",
+                    "shorthand": "j",
+                    "description": "Output in JSON format"
+                }
+            ]
+        }
+    ]
+} 
