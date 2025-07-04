@@ -1,16 +1,8 @@
 {
+    "name": "mycli",
+    "description": "A modular CLI framework for building command-line tools",
+    "version": "1.0.0",
     "commands": [
-        {
-            "name": "help",
-            "description": "Show help information",
-            "flags": [
-                {
-                    "name": "verbose",
-                    "shorthand": "v",
-                    "description": "Show verbose help with examples"
-                }
-            ]
-        },
         {
             "name": "init",
             "description": "Initialize a new CLI project",
@@ -37,7 +29,7 @@
             "description": "Package the current CLI project",
             "flags": [
                 {
-                    "name": "output",
+                    "name": "output", 
                     "shorthand": "o",
                     "description": "Output directory for the package"
                 },
@@ -49,8 +41,8 @@
             ]
         },
         {
-            "name": "install",
-            "description": "Install the current CLI project",
+            "name": "deploy",
+            "description": "deploy package to cli",
             "flags": [
                 {
                     "name": "global",

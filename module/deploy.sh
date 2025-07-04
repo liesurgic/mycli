@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/bash
 
 # lie CLI Framework - Install Package
 # Installs a CLI package to the framework
@@ -41,8 +41,8 @@ while [[ $# -gt 0 ]]; do
             echo "  --help, -h             Show this help message"
             echo ""
             echo "Examples:"
-            echo "  $0 my_module_cli"
-            echo "  $0 my_module_cli -f"
+            echo "  $0 cli_module"
+            echo "  $0 cli_module -f"
             exit 0
             ;;
         *)
@@ -56,7 +56,7 @@ done
 if [ -z "$PACKAGE_DIR" ]; then
     print_error "Package directory is required."
     echo "Usage: $0 <package_dir>"
-    echo "Example: $0 my_module_cli"
+    echo "Example: $0 cli_module"
     exit 1
 fi
 
