@@ -361,5 +361,59 @@ EOF
     print_success "Generated: $cli_name.sh"
 }
 
+write_commands() {
+    local config_file="$1"
+    local output_dir="$2"
+    local module_name="$3"
+    local filename="$output_dir/commands.sh"
+    
+    print_info "Generating commands file: commands.sh"
+    
+    # Write file header
+    cat > "$filename" << 'EOF'
+#!/bin/bash
+
+# Command implementations
+# Generated from config.json
+
+EOF
+    
+    # Get all command names
+    local command_names=$(read_command_names "$config_file")
+    
+    # Generate function for each command
+    while IFS= read -r cmd_name; do
+        if [ -n "$cmd_name" ]; then
+            print_info "Writing command function: $cmd_name"
+            
+            # Start the function
+            echo "${cmd_name}() {" >> "$filename"
+            
+            # Get flag names for this command
+            local flag_names=$(read_command_flag_names "$config_file" "$cmd_name")
+            local flag_index=0
+            
+            # Add flag variables
+            while IFS= read -r flag_name; do
+                if [ -n "$flag_name" ]; then
+                    echo "    local ${flag_name}=\"\$$((flag_index + 1))\"" >> "$filename"
+                    ((flag_index++))
+                fi
+            done <<< "$flag_names"
+            
+            # Add placeholder implementation
+            echo "    echo \"Command '$cmd_name' not yet implemented\"" >> "$filename"
+            echo "    echo \"Available flags: $(echo "$flag_names" | tr '\n' ' ' | sed 's/ $//')\"" >> "$filename"
+            echo "}" >> "$filename"
+            echo "" >> "$filename"
+        fi
+    done <<< "$command_names"
+    
+    chmod +x "$filename"
+    print_success "Generated: commands.sh"
+}
+
 
 write_help ./cli.json .tmp
+write_main_dispatcher ./cli.json .tmp
+write_commands ./cli.json .tmp mycli

@@ -66,4 +66,25 @@ extract_flag_info() {
     echo "$flag_name|$flag_shorthand|$flag_desc"
 }
 
+# Get flag names for a specific command by name
+read_command_flag_names() {
+    local config_file="$1"
+    local command_name="$2"
+    
+    # Use jq to find the command by name and extract flag names
+    jq -r --arg cmd_name "$command_name" '
+        .commands[] | 
+        select(.name == $cmd_name) | 
+        .flags[]?.name // empty
+    ' "$config_file" 2>/dev/null
+}
+
+# Get all command names from config
+read_command_names() {
+    local config_file="$1"
+    
+    # Use jq to extract all command names
+    jq -r '.commands[]?.name // empty' "$config_file" 2>/dev/null
+}
+
 # You can add more helpers as needed, e.g. for version, author, etc. 
