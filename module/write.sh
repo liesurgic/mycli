@@ -27,10 +27,10 @@ write_content() {
 set_globals() {
     local json_config="$1"
     
-    NAME=$(jq -r '.name // "CLI Tool"' "$json_config")
-    ALIAS=$(jq -r '.alias // .name // "cli"' "$json_config")
-    DESCRIPTION=$(jq -r '.description // "A command line interface"' "$json_config")
-    VERSION=$(jq -r '.version // "1.0.0"' "$json_config")
+    NAME="$(jq -r '.name // "CLI Tool"' "$json_config")"
+    ALIAS="$(jq -r '.alias // .name // "cli"' "$json_config")"
+    DESCRIPTION="$(jq -r '.description // "A command line interface"' "$json_config")"
+    VERSION="$(jq -r '.version // "1.0.0"' "$json_config")"
 }
 
 # =============================================================================
@@ -50,18 +50,19 @@ content_header() {
     content+="# Get the directory where this script is located\n"
     content+="SCRIPT_DIR=\"\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\")\" && pwd)\"\n"
     content+="\n"
-    echo "$content"
+    printf "%s" "$content"
 }
 
 content_footer() {
     local content=""
     content+="\n"
     content+="# End of generated CLI\n"
-    echo "$content"
+    printf "%s" "$content"
 }
 
 # Build main help content
 main_help_content() {
+    local json_config="$1"
     local content=""
     content+="# Main help menu - lists all available commands\n"
     content+="help() {\n"
@@ -71,10 +72,12 @@ main_help_content() {
     content+="    echo \"\"\n"
     content+="    echo \"Commands:\"\n"
     
-    # Add command listings
-    jq -r '.commands[] | "    echo \"  \(.name)    \(.description)\""' "$1" 2>/dev/null | while read -r line; do
-        content+="$line\n"
-    done
+    # Add command listings - properly handle command substitution
+    while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            content+="$line\n"
+        fi
+    done < <(jq -r '.commands[] | "    echo \"  \(.name)    \(.description)\""' "$json_config" 2>/dev/null)
     
     content+="    echo \"\"\n"
     content+="    echo \"Run '$ALIAS <command> help' for detailed help on a specific command.\"\n"
@@ -82,7 +85,7 @@ main_help_content() {
     content+="}\n"
     content+="\n"
     
-    echo "$content"
+    printf "%s" "$content"
 }
 
 # Build individual command help functions
@@ -90,34 +93,38 @@ command_help_content() {
     local json_config="$1"
     local content=""
     
-    jq -c '.commands[]' "$json_config" | while read -r command; do
-        local cmd_name=$(echo "$command" | jq -r '.name')
-        local cmd_desc=$(echo "$command" | jq -r '.description')
-        
-        content+="# Help for $cmd_name command\n"
-        content+="${cmd_name}_help() {\n"
-        content+="    echo \"$cmd_name - $cmd_desc\"\n"
-        content+="    echo \"\"\n"
-        content+="    echo \"Usage: $ALIAS $cmd_name [options]\"\n"
-        content+="    echo \"\"\n"
-        
-        # Add flags if they exist
-        local flag_count=$(echo "$command" | jq '.flags | length')
-        if [ "$flag_count" -gt 0 ]; then
-            content+="    echo \"Options:\"\n"
-            echo "$command" | jq -r '.flags[] | "    echo \"  --\(.name)\(if .shorthand then " (-" + .shorthand + ")" else "" end)    \(.description)\""' | while read -r flag_line; do
-                content+="$flag_line\n"
-            done
+    while IFS= read -r command; do
+        if [ -n "$command" ]; then
+            local cmd_name="$(echo "$command" | jq -r '.name')"
+            local cmd_desc="$(echo "$command" | jq -r '.description')"
+            
+            content+="# Help for $cmd_name command\n"
+            content+="${cmd_name}_help() {\n"
+            content+="    echo \"$cmd_name - $cmd_desc\"\n"
             content+="    echo \"\"\n"
+            content+="    echo \"Usage: $ALIAS $cmd_name [options]\"\n"
+            content+="    echo \"\"\n"
+            
+            # Add flags if they exist
+            local flag_count="$(echo "$command" | jq '.flags | length')"
+            if [ "$flag_count" -gt 0 ]; then
+                content+="    echo \"Options:\"\n"
+                while IFS= read -r flag_line; do
+                    if [ -n "$flag_line" ]; then
+                        content+="$flag_line\n"
+                    fi
+                done < <(echo "$command" | jq -r '.flags[] | "    echo \"  --\(.name)\(if .shorthand then " (-" + .shorthand + ")" else "" end)    \(.description)\""')
+                content+="    echo \"\"\n"
+            fi
+            
+            content+="    echo \"Examples:\"\n"
+            content+="    echo \"  $ALIAS $cmd_name\"\n"
+            content+="}\n"
+            content+="\n"
         fi
-        
-        content+="    echo \"Examples:\"\n"
-        content+="    echo \"  $ALIAS $cmd_name\"\n"
-        content+="}\n"
-        content+="\n"
-    done
+    done < <(jq -c '.commands[]' "$json_config")
     
-    echo "$content"
+    printf "%s" "$content"
 }
 
 # Build command implementations
@@ -128,27 +135,31 @@ content_commands() {
     content+="# Command implementations\n"
     content+="\n"
     
-    jq -c '.commands[]' "$json_config" | while read -r command; do
-        local cmd_name=$(echo "$command" | jq -r '.name')
-        
-        content+="${cmd_name}() {\n"
-        
-        # Add flag variables
-        local flag_index=1
-        echo "$command" | jq -r '.flags[]?.name // empty' | while read -r flag_name; do
-            if [ -n "$flag_name" ]; then
-                content+="    local ${flag_name}=\"\$$flag_index\"\n"
-                ((flag_index++))
-            fi
-        done
-        
-        content+="    echo \"Command '$cmd_name' not yet implemented\"\n"
-        content+="    echo \"Available flags: $(echo "$command" | jq -r '.flags[]?.name // empty' | tr '\n' ' ' | sed 's/ $//')\"\n"
-        content+="}\n"
-        content+="\n"
-    done
+    while IFS= read -r command; do
+        if [ -n "$command" ]; then
+            local cmd_name="$(echo "$command" | jq -r '.name')"
+            
+            content+="${cmd_name}() {\n"
+            
+            # Add flag variables
+            local flag_index=1
+            while IFS= read -r flag_name; do
+                if [ -n "$flag_name" ]; then
+                    content+="    local ${flag_name}=\"\$$flag_index\"\n"
+                    ((flag_index++))
+                fi
+            done < <(echo "$command" | jq -r '.flags[]?.name // empty')
+            
+            # Get flag names for display
+            local flag_names="$(echo "$command" | jq -r '.flags[]?.name // empty' | tr '\n' ' ' | sed 's/ $//')"
+            content+="    echo \"Command '$cmd_name' not yet implemented\"\n"
+            content+="    echo \"Available flags: $flag_names\"\n"
+            content+="}\n"
+            content+="\n"
+        fi
+    done < <(jq -c '.commands[]' "$json_config")
     
-    echo "$content"
+    printf "%s" "$content"
 }
 
 # Build dispatcher logic
@@ -171,9 +182,11 @@ content_dispatcher() {
     content+="    case \"\$command\" in\n"
     
     # Add each command to the case statement
-    jq -r '.commands[] | "        \(.name))" + "\n" + "            \(.name) \"$@\"" + "\n" + "            ;;"' "$json_config" | while read -r case_line; do
-        content+="$case_line\n"
-    done
+    while IFS= read -r case_line; do
+        if [ -n "$case_line" ]; then
+            content+="$case_line\n"
+        fi
+    done < <(jq -r '.commands[] | "        \(.name))" + "\n" + "            \(.name) \"$@\"" + "\n" + "            ;;"' "$json_config")
     
     content+="        help|--help|-h)\n"
     content+="            if [ -n \"\$1\" ]; then\n"
@@ -181,9 +194,11 @@ content_dispatcher() {
     content+="                case \"\$1\" in\n"
     
     # Add help for each command
-    jq -r '.commands[] | "                    \(.name))" + "\n" + "                        \(.name)_help" + "\n" + "                        ;;"' "$json_config" | while read -r help_case_line; do
-        content+="$help_case_line\n"
-    done
+    while IFS= read -r help_case_line; do
+        if [ -n "$help_case_line" ]; then
+            content+="$help_case_line\n"
+        fi
+    done < <(jq -r '.commands[] | "                    \(.name))" + "\n" + "                        \(.name)_help" + "\n" + "                        ;;"' "$json_config")
     
     content+="                    *)\n"
     content+="                        echo \"Unknown command: \$1\"\n"
@@ -205,7 +220,7 @@ content_dispatcher() {
     content+="}\n"
     content+="\n"
     
-    echo "$content"
+    printf "%s" "$content"
 }
 
 # =============================================================================
@@ -220,12 +235,12 @@ write_cli() {
     ensure_jq_installed
     set_globals "$json_config"
     
-    content+=$(content_header)
-    content+=$(main_help_content "$json_config")
-    content+=$(command_help_content "$json_config")
-    content+=$(content_commands "$json_config")
-    content+=$(content_dispatcher "$json_config")
-    content+=$(content_footer)
+    content+="$(content_header)"
+    content+="$(main_help_content "$json_config")"
+    content+="$(command_help_content "$json_config")"
+    content+="$(content_commands "$json_config")"
+    content+="$(content_dispatcher "$json_config")"
+    content+="$(content_footer)"
     
     write_content "$content" "$filename"
     chmod +x "$filename"
@@ -263,10 +278,10 @@ write_flags_section() {
         
         while IFS= read -r flag_b64; do
             if [ -n "$flag_b64" ]; then
-                local flag_info=$(extract_flag_info "$flag_b64")
-                local flag_name=$(echo "$flag_info" | cut -d'|' -f1)
-                local flag_shorthand=$(echo "$flag_info" | cut -d'|' -f2)
-                local flag_desc=$(echo "$flag_info" | cut -d'|' -f3)
+                local flag_info="$(extract_flag_info "$flag_b64")"
+                local flag_name="$(echo "$flag_info" | cut -d'|' -f1)"
+                local flag_shorthand="$(echo "$flag_info" | cut -d'|' -f2)"
+                local flag_desc="$(echo "$flag_info" | cut -d'|' -f3)"
                 
                 if [ -n "$flag_name" ]; then
                     echo "    echo \"$(format_flag_display "$flag_name" "$flag_shorthand")\"" >> "$filename"
@@ -293,9 +308,9 @@ write_examples_section() {
     if [ -n "$flags" ]; then
         while IFS= read -r flag_b64 && [ $example_count -lt 2 ]; do
             if [ -n "$flag_b64" ]; then
-                local flag_info=$(extract_flag_info "$flag_b64")
-                local flag_name=$(echo "$flag_info" | cut -d'|' -f1)
-                local flag_shorthand=$(echo "$flag_info" | cut -d'|' -f2)
+                local flag_info="$(extract_flag_info "$flag_b64")"
+                local flag_name="$(echo "$flag_info" | cut -d'|' -f1)"
+                local flag_shorthand="$(echo "$flag_info" | cut -d'|' -f2)"
                 
                 if [ -n "$flag_name" ]; then
                     echo "    echo \"  $cli_name $cmd_name $(format_flag_display "$flag_name" "$flag_shorthand")\"" >> "$filename"
@@ -325,7 +340,7 @@ format_flag_display() {
 
 # Generate CLI if config file exists
 if [ -f "config.json" ]; then
-    write_cli config.json .tmp/cli.sh
+    write_cli "config.json" ".tmp/cli.sh"
 else
     print_error "config.json not found"
     exit 1
