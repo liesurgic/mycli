@@ -1,3 +1,5 @@
+#!/opt/homebrew/bin/bash
+
 # set -e enables exit immediately on non-zero exit status
 # set -e
 
@@ -35,7 +37,7 @@ set_globals() {
 
 content_header() {
     cat << EOF
-#!/bin/bash
+#!/opt/homebrew/bin/bash
 
 # $NAME CLI
 # Generated from config
