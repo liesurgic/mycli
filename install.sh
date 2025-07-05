@@ -9,11 +9,11 @@ set_globals config.json
 print_info "packing config.json"
 ./package.sh config.json
 
-print_info "removing .tmp/${NAME}/${NAME}.sh"
-rm .tmp/$NAME/$NAME.sh
+print_info "using generated cli.sh as main entry point"
+cp .tmp/$NAME/cli.sh .tmp/$NAME/$NAME.sh
 
-print_info "copying cmds.sh .tmp/${NAME}/${NAME}.sh"
-cp cmds.sh .tmp/$NAME/$NAME.sh
+print_info "copying cmds.sh for sourcing"
+cp cmds.sh .tmp/$NAME/cmds.sh
 
 print_info "copying init.sh .tmp/${NAME}/init.sh"
 cp init.sh .tmp/$NAME/init.sh

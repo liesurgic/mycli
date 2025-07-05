@@ -25,9 +25,8 @@ EOF
 }
 
 build_source_cmds() {
-    local name=$NAME
     cat << EOF
-source "\$SCRIPT_DIR/$name.sh"
+source "\$SCRIPT_DIR/cmds.sh"
 
 EOF
 }
@@ -208,6 +207,7 @@ build() {
         build_cmds_help
         build_dispatcher
         build_footer
+        echo 'main "$@"'
     } > "$BUILD"
 
     {
