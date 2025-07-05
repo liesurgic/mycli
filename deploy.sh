@@ -64,6 +64,8 @@ deploy() {
     chmod +x "$DEPLOY/$NAME.sh"
     chmod +x "$DEPLOY/utils.sh"
 
+
+    rm -r .tmp
     # Add to shell configuration
     add_to_shell "$NAME" "$DEPLOY"
 
