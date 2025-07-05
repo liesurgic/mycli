@@ -7,23 +7,6 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
 
-# =============================================================================
-# GLOBAL VARIABLES
-# =============================================================================
-NAME=""
-ALIAS=""
-DESCRIPTION=""
-VERSION=""
-
-# =============================================================================
-# HELPER FUNCTIONS
-# =============================================================================
-
-
-# =============================================================================
-# CONTENT BUILDING FUNCTIONS
-# =============================================================================
-
 build_header() {
     cat << EOF
 #!/opt/homebrew/bin/bash
@@ -37,6 +20,14 @@ set -e
 # Get the directory where this script is located
 SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
 source "\$SCRIPT_DIR/utils.sh"
+
+EOF
+}
+
+build_source_cmds() {
+    local name=$NAME
+    cat << EOF
+source "\$SCRIPT_DIR/$name.sh"
 
 EOF
 }
@@ -212,15 +203,21 @@ build() {
 
     {
         build_header
+        build_source_cmds
         build_help
         build_cmds_help
-        build_cmds
         build_dispatcher
         build_footer
-    } > "$OUTPUT"
+    } > "$BUILD"
 
-    chmod +x "$OUTPUT"
-    print_success "$OUTPUT" "✏️"
+    {
+        build_header
+        build_cmds
+        build_footer
+    } > "$CMDS"
+
+    chmod +x "$BUILD"
+    print_success "Built ${NAME} ${BUILD}" "✏️"
 }
 
 # =============================================================================

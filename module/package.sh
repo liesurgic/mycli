@@ -1,15 +1,9 @@
 #!/opt/homebrew/bin/bash
 
-# CLI Framework - Package Builder
-# Builds a CLI package from a JSON configuration file
+# CLI Package Builder - Builds package from JSON config
 
-# Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
-
-# =============================================================================
-# PACKAGING FUNCTIONS
-# =============================================================================
 
 package() {
     set_globals $1
@@ -32,16 +26,14 @@ package() {
     # Build the CLI
     "$SCRIPT_DIR/build.sh" "$module_dir/$NAME.json"
     
-    print_success "${NAME} ${OUTPUT}" "📦"
+    print_success "Packaged ${NAME} ${PACKAGE}" "📦"
 }
 
-# Test function to validate a config file
-test_config() {
+validate() {
     set_globals $1
 
     if [ -z "$JSON_CONFIG" ]; then
         print_error "Config file is required"
-        echo "Usage: test_config <config_file>"
         return 1
     fi
 
@@ -99,15 +91,13 @@ clean_package() {
         print_warn "Directory does not exist: $module_dir"
     fi
 }
-# =============================================================================
-# EXECUTION
-# =============================================================================
 
-# Check if we have a config file argument
 if [ -n "$1" ] && [ -f "$1" ]; then
+    validate "$1"
     package "$1"
 else
     print_error "Config file not found or not provided"
     echo "Usage: $0 <config_file>"
     exit 1
 fi 
+

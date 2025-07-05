@@ -1,20 +1,14 @@
-# set -e enables exit immediately on non-zero exit status
-# set -e
+#!/opt/homebrew/bin/bash
 
-# Colors for output
-
-
-# =============================================================================
-# GLOBAL VARIABLES
-# =============================================================================
+JSON_CONFIG=""
 NAME=""
 ALIAS=""
 DESCRIPTION=""
 VERSION=""
-JSON_CONFIG=""
 OUTPUT=""
+LIE_HOME=""
+MODULE=""
 
-# Set global variables from JSON config
 set_globals() {
     if [ -z "$JSON_CONFIG" ]; then
         JSON_CONFIG="$1"
@@ -22,7 +16,21 @@ set_globals() {
         ALIAS="$(jq -r '.alias // .name // "cli"' "$JSON_CONFIG")"
         DESCRIPTION="$(jq -r '.description // "A command line interface"' "$JSON_CONFIG")"
         VERSION="$(jq -r '.version // "1.0.0"' "$JSON_CONFIG")"
-        OUTPUT=".tmp/${NAME}/${NAME}.sh"
+        PACKAGE=".tmp/${NAME}"
+
+#depricated
+        OUTPUT="$PACKAGE/${NAME}.sh"  
+#depricated
+
+        BUILD="$PACKAGE/cli.sh"
+        CMDS="$PACKAGE/${NAME}.sh"
+        LIE_HOME="$HOME/.lie"
+        DEPLOY="$LIE_HOME/modules/$NAME"
+
+#depricated
+        MODULE="$LIE_HOME/modules/$NAME"
+#depricated
+        
     fi
 }
 

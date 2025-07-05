@@ -1,136 +1,80 @@
 #!/bin/bash
 
-# lie CLI Framework - Install Package
-# Installs a CLI package to the framework
-
+# CLI Deploy - Installs CLI module from package
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/utils.sh"
 
-print_info() {
-    echo -e "${BLUE}ℹ️  $1${NC}"
-}
+validate() {
+    set_globals "$1"
 
-print_success() {
-    echo -e "${GREEN}✅ $1${NC}"
-}
-
-print_error() {
-    echo -e "${RED}❌ $1${NC}"
-}
-
-# Parse arguments
-PACKAGE_DIR=""
-FORCE=""
-
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -f|--force)
-            FORCE="true"
-            shift
-            ;;
-        --help|-h)
-            echo "Usage: $0 <package_dir> [options]"
-            echo ""
-            echo "Options:"
-            echo "  -f, --force            Force overwrite existing module"
-            echo "  --help, -h             Show this help message"
-            echo ""
-            echo "Examples:"
-            echo "  $0 cli_module"
-            echo "  $0 cli_module -f"
-            exit 0
-            ;;
-        *)
-            PACKAGE_DIR="$1"
-            shift
-            ;;
-    esac
-done
-
-# Validate required arguments
-if [ -z "$PACKAGE_DIR" ]; then
-    print_error "Package directory is required."
-    echo "Usage: $0 <package_dir>"
-    echo "Example: $0 cli_module"
-    exit 1
-fi
-
-if [ ! -d "$PACKAGE_DIR" ]; then
-    print_error "Package directory not found: $PACKAGE_DIR"
-    exit 1
-fi
-
-# Find the main script and config file
-MAIN_SCRIPT=""
-CONFIG_FILE=""
-
-for file in "$PACKAGE_DIR"/*.sh; do
-    if [ -f "$file" ] && [ "$(basename "$file")" != "commands.sh" ] && [ "$(basename "$file")" != "utils.sh" ]; then
-        MAIN_SCRIPT="$file"
-        break
+    if [ -z "$PACKAGE" ] || [ ! -d "$PACKAGE" ]; then
+        print_error "Package not found: $PACKAGE"
+        exit 1
     fi
-done
+}
 
-for file in "$PACKAGE_DIR"/*.json; do
-    if [ -f "$file" ]; then
-        CONFIG_FILE="$file"
-        break
+add_to_shell() {
+    local name="$1"
+    local deploy_path="$2"
+    local shell_rc="$HOME/.zshrc"
+    local alias_line="alias $name='$deploy_path/$name.sh'"
+    
+    # Check if alias already exists
+    if grep -q "alias $name=" "$shell_rc" 2>/dev/null; then
+        print_info "Alias for $name already exists in $shell_rc"
+        return 0
     fi
-done
+    
+    # Add alias to .zshrc
+    echo "" >> "$shell_rc"
+    echo "# CLI Module: $name" >> "$shell_rc"
+    echo "$alias_line" >> "$shell_rc"
+    
+    print_success "Added $name alias to $shell_rc"
+    print_info "Run 'source ~/.zshrc' or restart your terminal to use $name"
+}
 
-if [ -z "$MAIN_SCRIPT" ]; then
-    print_error "No main script found in $PACKAGE_DIR"
+deploy() {
+    set_globals "$1"
+    local force="$2"
+
+    print_info "Deploying $NAME"
+
+    # Check if module already exists
+    if [ -d "$DEPLOY" ] && [ "$force" != "true" ]; then
+        rm -rf "$DEPLOY"
+        # print_error "Module $NAME already exists. Use -f to force overwrite."
+        # exit 1
+    fi
+
+    # Create module directory
+    if [ "$force" = "true" ]; then
+        print_info "Force overwriting existing module"
+        rm -rf "$DEPLOY"
+    fi
+    
+    mkdir -p "$DEPLOY"
+
+    print_info "Copying package into module"
+    cp -r "$PACKAGE"/* "$DEPLOY/"
+
+    print_info "Making files executable"
+    chmod +x "$DEPLOY/$NAME.sh"
+    chmod +x "$DEPLOY/utils.sh"
+
+    # Add to shell configuration
+    add_to_shell "$NAME" "$DEPLOY"
+
+    print_success "Deployed ${NAME} ${DEPLOY}"
+}
+
+if [ -n "$1" ] && [ -f "$1" ]; then
+    validate "$1"
+    deploy "$1"
+else
+    print_error "Config file not found or not provided"
+    echo "Usage: $0 <config_file>"
     exit 1
-fi
-
-if [ -z "$CONFIG_FILE" ]; then
-    print_error "No config file found in $PACKAGE_DIR"
-    exit 1
-fi
-
-# Extract module name from config
-MODULE_NAME=$(grep '"name"' "$CONFIG_FILE" | head -1 | sed 's/.*"name": *"\([^"]*\)".*/\1/')
-
-if [ -z "$MODULE_NAME" ]; then
-    print_error "Module name not found in config file"
-    exit 1
-fi
-
-print_info "Installing module: $MODULE_NAME"
-
-# Define installation paths
-LIE_HOME="$HOME/.lie"
-MODULE_DIR="$LIE_HOME/modules/$MODULE_NAME"
-
-# Check if module already exists
-if [ -d "$MODULE_DIR" ] && [ "$FORCE" != "true" ]; then
-    print_error "Module $MODULE_NAME already exists. Use -f to force overwrite."
-    exit 1
-fi
-
-# Create module directory
-if [ "$FORCE" = "true" ]; then
-    rm -rf "$MODULE_DIR"
-fi
-
-mkdir -p "$MODULE_DIR"
-
-# Copy files
-cp "$MAIN_SCRIPT" "$MODULE_DIR/$MODULE_NAME.sh"
-cp "$PACKAGE_DIR/commands.sh" "$MODULE_DIR/"
-cp "$PACKAGE_DIR/utils.sh" "$MODULE_DIR/"
-cp "$CONFIG_FILE" "$MODULE_DIR/"
-
-# Make files executable
-chmod +x "$MODULE_DIR/$MODULE_NAME.sh"
-chmod +x "$MODULE_DIR/commands.sh"
-chmod +x "$MODULE_DIR/utils.sh"
-
-print_success "Module $MODULE_NAME installed successfully!"
-print_info "Location: $MODULE_DIR"
-print_info "Try running: lie $MODULE_NAME help" 
+fi 
