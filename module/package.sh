@@ -3,46 +3,17 @@
 # lie CLI Framework - Package Builder
 # Builds a CLI package from a JSON configuration file
 
-set -e
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/utils.sh"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-print_info() {
-    echo -e "${BLUE}ℹ️  $1${NC}"
-}
-
-print_success() {
-    echo -e "${GREEN}✅ $1${NC}"
-}
-
-print_error() {
-    echo -e "${RED}❌ $1${NC}"
-}
-
-# Parse config file and extract module info
-parse_config() {
-    local config_file="$1"
-
-    if [ ! -f "$config_file" ]; then
-        print_error "Config file not found: $config_file"
-        return 1
-    fi
-
-    # Extract module information
-    local module_name=$(grep '"name"' "$config_file" | head -1 | sed 's/.*"name": *"\([^"]*\)".*/\1/')
-    local description=$(grep '"description"' "$config_file" | head -1 | sed 's/.*"description": *"\([^"]*\)".*/\1/')
-
-    if [ -z "$module_name" ]; then
-        print_error "Module name not found in config file"
-        return 1
-    fi
-
-    echo "$module_name|$description"
-}
+# =============================================================================
+# GLOBAL VARIABLES
+# =============================================================================
+NAME=""
+ALIAS=""
+DESCRIPTION=""
+VERSION=""
 
 copy() {
     local config_file="$1"
@@ -143,67 +114,6 @@ clean_package() {
     else
         print_warn "Directory does not exist: $output_dir"
     fi
-}
-
-# Help function
-show_help() {
-    echo "Usage: $0 <command> [args...]"
-    echo ""
-    echo "Commands:"
-    echo "  build <config> [output]    Build a CLI package"
-    echo "  test <config>              Test/validate a config file"
-    echo "  clean <dir>                Remove generated package directory"
-    echo "  help                       Show this help message"
-    echo ""
-    echo "Examples:"
-    echo "  $0 build my_module.json"
-    echo "  $0 build my_module.json custom_output"
-    echo "  $0 test my_module.json"
-    echo "  $0 clean my_module_cli"
-    echo ""
-    echo "Functions available when sourced:"
-    echo "  package_module <config> [output]  Build a CLI package"
-    echo "  test_config <config>              Test a config file"
-    echo "  clean_package <dir>               Clean package directory"
-    echo "  parse_config <config>             Parse and validate config"
-    echo "  generate_main_script <name> <config> <output>  Generate main script"
-    echo "  generate_commands <name> <desc> <output>      Generate commands"
-    echo "  copy_utils <name> <output>                Generate utilities"
-    echo "  copy_config <config> <output>                 Copy config file"
-}
-
-# Main execution logic
-main() {
-    local command="$1"
-
-    case "$command" in
-    build)
-        shift # Remove 'build' from arguments
-        package_module "$@"
-        ;;
-    test)
-        shift # Remove 'test' from arguments
-        test_config "$@"
-        ;;
-    clean)
-        shift # Remove 'clean' from arguments
-        clean_package "$@"
-        ;;
-    help | --help | -h)
-        show_help
-        ;;
-    *)
-        if [ -z "$command" ]; then
-            print_error "Command is required."
-            show_help
-            exit 1
-        else
-            print_error "Unknown command: $command"
-            show_help
-            exit 1
-        fi
-        ;;
-    esac
 }
 
 # Check if script is being sourced or executed
