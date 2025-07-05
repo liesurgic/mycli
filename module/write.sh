@@ -4,57 +4,237 @@
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
-source "$SCRIPT_DIR/read-config.sh"
+
+# =============================================================================
+# GLOBAL VARIABLES
+# =============================================================================
+NAME=""
+ALIAS=""
+DESCRIPTION=""
+VERSION=""
 
 # =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
 
-# (No need to redefine read_json_value, read_json_values, read_config_list, etc. Use those from utils.sh/read-config.sh)
+write_content() {
+    local content="$1"
+    local file="$2"
+    printf "%s" "$content" > "$file"
+}
+
+# Set global variables from JSON config
+set_globals() {
+    local json_config="$1"
+    
+    NAME=$(jq -r '.name // "CLI Tool"' "$json_config")
+    ALIAS=$(jq -r '.alias // .name // "cli"' "$json_config")
+    DESCRIPTION=$(jq -r '.description // "A command line interface"' "$json_config")
+    VERSION=$(jq -r '.version // "1.0.0"' "$json_config")
+}
 
 # =============================================================================
-# TEMPLATE FUNCTIONS
+# CONTENT BUILDING FUNCTIONS
 # =============================================================================
 
-# Generate main help menu that lists all commands
-write_main_help_menu() {
-    local filename="$1"
-    local commands="$2"
-    local cli_name="$3"
-    local cli_description="$4"
-    
-    print_info "Writing help function"
-    
-    cat >> "$filename" << EOF
+content_header() {
+    local content=""
+    content+="#!/bin/bash\n"
+    content+="\n"
+    content+="# $NAME CLI\n"
+    content+="# Generated from config\n"
+    content+="# $DESCRIPTION\n"
+    content+="\n"
+    content+="set -e\n"
+    content+="\n"
+    content+="# Get the directory where this script is located\n"
+    content+="SCRIPT_DIR=\"\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\")\" && pwd)\"\n"
+    content+="\n"
+    echo "$content"
+}
 
-# Main help menu - lists all available commands
-help() {
-    echo "$cli_name - $cli_description"
-    echo ""
-    echo "Usage: $cli_name <command> [options]"
-    echo ""
-    echo "Commands:"
-EOF
+content_footer() {
+    local content=""
+    content+="\n"
+    content+="# End of generated CLI\n"
+    echo "$content"
+}
+
+# Build main help content
+main_help_content() {
+    local content=""
+    content+="# Main help menu - lists all available commands\n"
+    content+="help() {\n"
+    content+="    echo \"$NAME - $DESCRIPTION\"\n"
+    content+="    echo \"\"\n"
+    content+="    echo \"Usage: $ALIAS <command> [options]\"\n"
+    content+="    echo \"\"\n"
+    content+="    echo \"Commands:\"\n"
     
-    # Add each command to the main help
-    while IFS= read -r command_b64; do
-        if [ -n "$command_b64" ]; then
-            local cmd_name=$(read_command_name "$command_b64")
-            local cmd_desc=$(read_command_description "$command_b64")
-            
-            if [ -n "$cmd_name" ]; then
-                echo "    echo \"  $cmd_name    $cmd_desc\"" >> "$filename"
-            fi
+    # Add command listings
+    jq -r '.commands[] | "    echo \"  \(.name)    \(.description)\""' "$1" 2>/dev/null | while read -r line; do
+        content+="$line\n"
+    done
+    
+    content+="    echo \"\"\n"
+    content+="    echo \"Run '$ALIAS <command> help' for detailed help on a specific command.\"\n"
+    content+="    echo \"Run '$ALIAS <command>' to execute a command.\"\n"
+    content+="}\n"
+    content+="\n"
+    
+    echo "$content"
+}
+
+# Build individual command help functions
+command_help_content() {
+    local json_config="$1"
+    local content=""
+    
+    jq -c '.commands[]' "$json_config" | while read -r command; do
+        local cmd_name=$(echo "$command" | jq -r '.name')
+        local cmd_desc=$(echo "$command" | jq -r '.description')
+        
+        content+="# Help for $cmd_name command\n"
+        content+="${cmd_name}_help() {\n"
+        content+="    echo \"$cmd_name - $cmd_desc\"\n"
+        content+="    echo \"\"\n"
+        content+="    echo \"Usage: $ALIAS $cmd_name [options]\"\n"
+        content+="    echo \"\"\n"
+        
+        # Add flags if they exist
+        local flag_count=$(echo "$command" | jq '.flags | length')
+        if [ "$flag_count" -gt 0 ]; then
+            content+="    echo \"Options:\"\n"
+            echo "$command" | jq -r '.flags[] | "    echo \"  --\(.name)\(if .shorthand then " (-" + .shorthand + ")" else "" end)    \(.description)\""' | while read -r flag_line; do
+                content+="$flag_line\n"
+            done
+            content+="    echo \"\"\n"
         fi
-    done <<< "$commands"
+        
+        content+="    echo \"Examples:\"\n"
+        content+="    echo \"  $ALIAS $cmd_name\"\n"
+        content+="}\n"
+        content+="\n"
+    done
     
-    cat >> "$filename" << EOF
-    echo ""
-    echo "Run '$cli_name <command> help' for detailed help on a specific command."
-    echo "Run '$cli_name <command>' to execute a command."
+    echo "$content"
 }
-EOF
+
+# Build command implementations
+content_commands() {
+    local json_config="$1"
+    local content=""
+    
+    content+="# Command implementations\n"
+    content+="\n"
+    
+    jq -c '.commands[]' "$json_config" | while read -r command; do
+        local cmd_name=$(echo "$command" | jq -r '.name')
+        
+        content+="${cmd_name}() {\n"
+        
+        # Add flag variables
+        local flag_index=1
+        echo "$command" | jq -r '.flags[]?.name // empty' | while read -r flag_name; do
+            if [ -n "$flag_name" ]; then
+                content+="    local ${flag_name}=\"\$$flag_index\"\n"
+                ((flag_index++))
+            fi
+        done
+        
+        content+="    echo \"Command '$cmd_name' not yet implemented\"\n"
+        content+="    echo \"Available flags: $(echo "$command" | jq -r '.flags[]?.name // empty' | tr '\n' ' ' | sed 's/ $//')\"\n"
+        content+="}\n"
+        content+="\n"
+    done
+    
+    echo "$content"
 }
+
+# Build dispatcher logic
+content_dispatcher() {
+    local json_config="$1"
+    local content=""
+    
+    content+="# Main dispatcher logic\n"
+    content+="main() {\n"
+    content+="    local command=\"\$1\"\n"
+    content+="    shift\n"
+    content+="\n"
+    content+="    # Show help if no arguments provided\n"
+    content+="    if [ \$# -eq 0 ] && [ -z \"\$command\" ]; then\n"
+    content+="        help\n"
+    content+="        exit 0\n"
+    content+="    fi\n"
+    content+="\n"
+    content+="    # Route commands\n"
+    content+="    case \"\$command\" in\n"
+    
+    # Add each command to the case statement
+    jq -r '.commands[] | "        \(.name))" + "\n" + "            \(.name) \"$@\"" + "\n" + "            ;;"' "$json_config" | while read -r case_line; do
+        content+="$case_line\n"
+    done
+    
+    content+="        help|--help|-h)\n"
+    content+="            if [ -n \"\$1\" ]; then\n"
+    content+="                # Show specific command help\n"
+    content+="                case \"\$1\" in\n"
+    
+    # Add help for each command
+    jq -r '.commands[] | "                    \(.name))" + "\n" + "                        \(.name)_help" + "\n" + "                        ;;"' "$json_config" | while read -r help_case_line; do
+        content+="$help_case_line\n"
+    done
+    
+    content+="                    *)\n"
+    content+="                        echo \"Unknown command: \$1\"\n"
+    content+="                        echo \"Run '$ALIAS help' for available commands.\"\n"
+    content+="                        exit 1\n"
+    content+="                        ;;\n"
+    content+="                esac\n"
+    content+="            else\n"
+    content+="                # Show main help\n"
+    content+="                help\n"
+    content+="            fi\n"
+    content+="            ;;\n"
+    content+="        *)\n"
+    content+="            echo \"Unknown command: \$command\"\n"
+    content+="            echo \"Run '$ALIAS help' for available commands.\"\n"
+    content+="            exit 1\n"
+    content+="            ;;\n"
+    content+="    esac\n"
+    content+="}\n"
+    content+="\n"
+    
+    echo "$content"
+}
+
+# =============================================================================
+# MAIN CLI GENERATION FUNCTION
+# =============================================================================
+
+write_cli() {
+    local json_config="$1"
+    local filename="$2"
+    local content=""
+
+    ensure_jq_installed
+    set_globals "$json_config"
+    
+    content+=$(content_header)
+    content+=$(main_help_content "$json_config")
+    content+=$(command_help_content "$json_config")
+    content+=$(content_commands "$json_config")
+    content+=$(content_dispatcher "$json_config")
+    content+=$(content_footer)
+    
+    write_content "$content" "$filename"
+    chmod +x "$filename"
+    print_success "📝 $filename"
+}
+
+# =============================================================================
+# LEGACY FUNCTIONS (for backward compatibility)
+# =============================================================================
 
 # Generate individual command help function
 write_command_help_function() {
@@ -128,99 +308,6 @@ write_examples_section() {
     echo "}" >> "$filename"
 }
 
-# =============================================================================
-# FILE OPERATIONS
-# =============================================================================
-
-write_file_header() {
-    local filename="$1"
-    cat > "$filename" << 'EOF'
-#!/bin/bash
-
-# Help Menu Functions
-# Generated by mycli 
-
-EOF
-}
-
-write_file_footer() {
-    local filename="$1"
-    # Add any footer content if needed
-    echo "# End of generated help menu functions" >> "$filename"
-}
-
-# =============================================================================
-# MAIN PROCESSING FUNCTIONS
-# =============================================================================
-
-# Process all commands from config
-write_commands_from_config() {
-    local config_file="$1"
-    local filename="$2"
-    
-    # Extract CLI metadata using read-config functions
-    local cli_name=$(read_module_name "$config_file")
-    local cli_description=$(read_module_description "$config_file")
-    
-    # Use defaults if not found in config
-    if [ -z "$cli_name" ]; then
-        cli_name="CLI Tool"
-    fi
-    if [ -z "$cli_description" ]; then
-        cli_description="Available Commands"
-    fi
-    
-    local commands=$(read_commands "$config_file")
-    
-    if [ -z "$commands" ]; then
-        print_warn "No commands found in config file"
-        return 0
-    fi
-    
-    # Generate main help menu first
-    write_main_help_menu "$filename" "$commands" "$cli_name" "$cli_description"
-    
-    # Process each command
-    local command_index=0
-    while IFS= read -r command_b64; do
-        if [ -n "$command_b64" ]; then
-            local cmd_name=$(read_command_name "$command_b64")
-            local cmd_desc=$(read_command_description "$command_b64")
-            
-            if [ -n "$cmd_name" ]; then
-                print_info "Writing help function: $cmd_name"
-                
-                local flags=$(read_command_flags "$config_file" "$command_index")
-                
-                write_command_help_function "$filename" "$cmd_name" "$cmd_desc" "$cli_name"
-                write_flags_section "$filename" "$flags"
-                write_examples_section "$filename" "$cmd_name" "$flags" "$cli_name"
-            fi
-            ((command_index++))
-        fi
-    done <<< "$commands"
-}
-
-# =============================================================================
-# WRITE help.sh FROM CONFIG .json
-# =============================================================================
-
-# Writes help.sh from config.json
-write_help() {
-    local config_file="$1"
-    local output_dir="$2"
-    local filename="$output_dir/help.sh"
-    
-    ensure_jq_installed
-    
-    write_file_header "$filename"
-    write_commands_from_config "$config_file" "$filename"
-    write_file_footer "$filename"
-    
-    chmod +x "$filename"
-    print_success "📝 help.sh"
-}
-
 # Format flag display for help output
 format_flag_display() {
     local flag_name="$1"
@@ -232,188 +319,14 @@ format_flag_display() {
     fi
 }
 
-
 # =============================================================================
-# WRITE MAIN DISPATCHER SCRIPT
+# EXECUTION
 # =============================================================================
 
-# Generate main dispatcher script with dynamic command routing
-write_main_dispatcher() {
-    local config_file="$1"
-    local output_dir="$2"
-    
-    # Extract CLI metadata using read-config functions
-    local cli_name=$(read_module_name "$config_file")
-    local cli_description=$(read_module_description "$config_file")
-    
-    # Use defaults if not found in config
-    if [ -z "$cli_name" ]; then
-        cli_name="mycli"
-    fi
-    if [ -z "$cli_description" ]; then
-        cli_description="CLI Tool"
-    fi
-    
-    local filename="$output_dir/$cli_name.sh"
-    
-    print_info "Generating main dispatcher: $cli_name.sh"
-    
-    # Write the main dispatcher script
-    cat > "$filename" << EOF
-#!/bin/bash
-
-# $cli_name CLI - Main Dispatcher
-# Generated from $(basename "$config_file")
-# $cli_description
-
-set -e
-
-# Get the directory where this script is located
-SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
-
-# Load utilities
-source "\$SCRIPT_DIR/utils.sh"
-
-# Load help functions
-source "\$SCRIPT_DIR/help.sh"
-
-# Load config
-CONFIG_FILE="\$SCRIPT_DIR/$(basename "$config_file")"
-
-# Set module name for help functions
-MODULE_NAME="$cli_name"
-
-# Parse command line
-COMMAND="\$1"
-shift
-
-# Show help if no arguments provided
-if [ \$# -eq 0 ] && [ -z "\$COMMAND" ]; then
-    help
-    exit 0
-fi
-
-# Route commands
-case "\$COMMAND" in
-EOF
-    
-    # Add each command to the case statement
-    local commands=$(read_commands "$config_file")
-    local command_index=0
-    while IFS= read -r command_b64; do
-        if [ -n "$command_b64" ]; then
-            local cmd_name=$(read_command_name "$command_b64")
-            
-            if [ -n "$cmd_name" ]; then
-                echo "    $cmd_name)" >> "$filename"
-                echo "        ${cmd_name}_help \"\$@\"" >> "$filename"
-                echo "        # TODO: Implement $cmd_name command logic" >> "$filename"
-                echo "        echo \"Command '$cmd_name' not yet implemented\"" >> "$filename"
-                echo "        exit 1" >> "$filename"
-                echo "        ;;" >> "$filename"
-            fi
-        fi
-    done <<< "$commands"
-    
-    # Add help and unknown command handling
-    cat >> "$filename" << EOF
-    help|--help|-h)
-        if [ -n "\$1" ]; then
-            # Show specific command help
-            case "\$1" in
-EOF
-    
-    # Add help for each command
-    local help_command_index=0
-    while IFS= read -r command_b64; do
-        if [ -n "$command_b64" ]; then
-            local cmd_name=$(read_command_name "$command_b64")
-            
-            if [ -n "$cmd_name" ]; then
-                echo "                $cmd_name)" >> "$filename"
-                echo "                    ${cmd_name}_help" >> "$filename"
-                echo "                    ;;" >> "$filename"
-            fi
-        fi
-    done <<< "$commands"
-    
-    cat >> "$filename" << EOF
-                *)
-                    echo "Unknown command: \$1"
-                    echo "Run '$cli_name help' for available commands."
-                    exit 1
-                    ;;
-            esac
-        else
-            # Show main help
-            help
-        fi
-        ;;
-    *)
-        echo "Unknown command: \$COMMAND"
-        echo "Run '$cli_name help' for available commands."
-        exit 1
-        ;;
-esac
-EOF
-    
-    chmod +x "$filename"
-    print_success "Generated: $cli_name.sh"
-}
-
-write_commands() {
-    local config_file="$1"
-    local output_dir="$2"
-    local module_name="$3"
-    local filename="$output_dir/commands.sh"
-    
-    print_info "Generating commands file: commands.sh"
-    
-    # Write file header
-    cat > "$filename" << 'EOF'
-#!/bin/bash
-
-# Command implementations
-# Generated from config.json
-
-EOF
-    
-    # Get all command names
-    local command_names=$(read_command_names "$config_file")
-    
-    # Generate function for each command
-    while IFS= read -r cmd_name; do
-        if [ -n "$cmd_name" ]; then
-            print_info "Writing command function: $cmd_name"
-            
-            # Start the function
-            echo "${cmd_name}() {" >> "$filename"
-            
-            # Get flag names for this command
-            local flag_names=$(read_command_flag_names "$config_file" "$cmd_name")
-            local flag_index=0
-            
-            # Add flag variables
-            while IFS= read -r flag_name; do
-                if [ -n "$flag_name" ]; then
-                    echo "    local ${flag_name}=\"\$$((flag_index + 1))\"" >> "$filename"
-                    ((flag_index++))
-                fi
-            done <<< "$flag_names"
-            
-            # Add placeholder implementation
-            echo "    echo \"Command '$cmd_name' not yet implemented\"" >> "$filename"
-            echo "    echo \"Available flags: $(echo "$flag_names" | tr '\n' ' ' | sed 's/ $//')\"" >> "$filename"
-            echo "}" >> "$filename"
-            echo "" >> "$filename"
-        fi
-    done <<< "$command_names"
-    
-    chmod +x "$filename"
-    print_success "Generated: commands.sh"
-}
-
-
-write_help ./cli.json .tmp
-write_main_dispatcher ./cli.json .tmp
-write_commands ./cli.json .tmp mycli
+# Generate CLI if config file exists
+if [ -f "config.json" ]; then
+    write_cli config.json .tmp/cli.sh
+else
+    print_error "config.json not found"
+    exit 1
+fi 
