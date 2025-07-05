@@ -217,6 +217,9 @@ build() {
     } > "$CMDS"
 
     chmod +x "$BUILD"
+    chmod +x "$CMDS"
+    
+    print_success "Built ${NAME} ${CMDS}" "✏️"
     print_success "Built ${NAME} ${BUILD}" "✏️"
 }
 
