@@ -38,4 +38,4 @@ clean:
 shell:
 	@echo "RUNNING COMMAND: ./shell.sh $(MODULES_DIR)/$(name).cli/$(name).json"
 	@./shell.sh $(MODULES_DIR)/$(name).cli/$(name).json
-	@cat ~/.zshrc
+	@cat ~/.zshrc | grep lie

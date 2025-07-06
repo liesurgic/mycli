@@ -194,7 +194,7 @@ set_globals() {
 entry_point() {
     if [ -n "$1" ]; then
         if set_globals "$1"; then
-            exit 0
+            return 0
         else
             print_error "Invalid argument: $1"
             echo "Usage: $0 <config_file|config_dir|name>"
@@ -202,11 +202,11 @@ entry_point() {
             echo "  $0 lie.json          # Direct JSON file"
             echo "  $0 lie.cli           # Directory containing config"
             echo "  $0 lie               # Look for lie.json in current dir"
-            exit 1
+            return 1
         fi
     else
         print_error "No argument provided"
         echo "Usage: $0 <config_file|config_dir|name>"
-        exit 1
+        return 1
     fi 
 }

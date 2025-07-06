@@ -34,7 +34,10 @@ shell() {
     print_info "Run 'source ~/.zshrc' or restart your terminal to use ${NAME} CLI"
 }
 
+
 if entry_point "$1"; then
     shell
     exit 0
 else
+    exit 1
+fi
