@@ -2,6 +2,13 @@
 
 LIE_HOME="$HOME/.lie"
 MODULES_DIRECTORY="${LIE_HOME}/modules"
+SCRIPT_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ -f "$SCRIPT_HOME/lie.sh" ]; then
+    CLI_HOME="${SCRIPT_HOME}"
+else
+    CLI_HOME="${LIE_HOME}/modules/lie.cli"
+fi
 
 
 JSON_CONFIG=""
@@ -14,12 +21,6 @@ MODULE_HOME=""
 MODULE_ENTRY_POINT=""
 MODULE_COMMAND_SCRIPT=""
 
-
-if [ -f "$SCRIPT_HOME/lie.sh" ]; then
-    CLI_HOME="${SCRIPT_HOME}"
-else
-    CLI_HOME="${LIE_HOME}/modules/lie.cli"
-fi
 
 
 UTILS_SCRIPT="${CLI_HOME}/utils.sh"

@@ -1,22 +1,28 @@
 .PHONY: build package deploy install uninstall clean shell
 
 LIE_HOME := $(HOME)/.lie
-MODULES_DIR := $(LIE_HOME)/modules
-CLI_HOME := $(MODULES_DIR)/lie.cli
+MODULES_DIRECTORY := $(LIE_HOME)/modules
+CLI_HOME := ""
 
+SCRIPT_HOME := $(shell cd "$(dir $(abspath $(lastword $(MAKEFILE_LIST))))" && pwd)
 
+ifeq ($(wildcard $(SCRIPT_HOME)/lie.sh),)
+    CLI_HOME := $(LIE_HOME)/modules/lie.cli
+else
+    CLI_HOME := $(SCRIPT_HOME)
+endif
 
 build:
 	@echo "RUNNING COMMAND: ./build.sh $(name)"
-	@./build.sh $(name)
+	@$(CLI_HOME)/build.sh $(name)
 
 package:
 	@echo "RUNNING COMMAND: ./package.sh $(name)"
-	@./package.sh $(name)
+	@$(CLI_HOME)/package.sh $(name)
 
 deploy:
 	@echo "RUNNING COMMAND: ./deploy.sh $(name)"
-	@./deploy.sh $(name)
+	@$(CLI_HOME)/deploy.sh $(name)
 
 install:
 	$(MAKE) package name=lie
@@ -32,7 +38,7 @@ install:
 	
 
 uninstall:
-	@./uninstall.sh 
+	@$(CLI_HOME)/uninstall.sh 
 	$(MAKE) clean name=lie
 
 clean:
@@ -40,6 +46,6 @@ clean:
 	@rm -r ./$(name).cli
 
 shell:
-	@echo "RUNNING COMMAND: ./shell.sh $(MODULES_DIR)/$(name).cli/$(name).json"
-	@./shell.sh $(MODULES_DIR)/$(name).cli/$(name).json
+	@echo "RUNNING COMMAND: ./shell.sh $(MODULES_DIRECTORY)/$(name).cli/$(name).json"
+	@$(CLI_HOME)/shell.sh $(MODULES_DIRECTORY)/$(name).cli/$(name).json
 	@cat ~/.zshrc | grep lie
