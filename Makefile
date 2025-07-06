@@ -22,10 +22,13 @@ install:
 	$(MAKE) package name=lie
 	$(MAKE) build name=lie
 	@cp *.sh ./lie.cli/
+	@cp Makefile ./lie.cli/
 	@ls ./lie.cli/
 	$(MAKE) deploy name=lie
 	$(MAKE) shell name=lie
 	$(MAKE) clean name=lie
+
+
 	
 
 uninstall:

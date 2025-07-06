@@ -139,8 +139,6 @@ EOF
 
 # Build dispatcher logic
 build_dispatcher() {
-    set_globals "$1"
-    
     cat << EOF
 # Main dispatcher logic
 main() {
@@ -199,7 +197,7 @@ EOF
 
 build() {
     local entry_point_script="./${MODULE_NAME}/${ENTRY_POINT_SCRIPT_NAME}"
-    local commands="./${MODULE_NAME}/${MODULE_COMMAND_SCRIPT_NAME}"
+    local command_script="./${MODULE_NAME}/${MODULE_COMMAND_SCRIPT_NAME}"
 
     {
         build_header
@@ -215,13 +213,13 @@ build() {
         build_header
         build_cmds
         build_footer
-    } > "${commands}"
+    } > "${command_script}"
 
     chmod +x "$entry_point_script"
-    chmod +x "$commands"
+    chmod +x "$command_script"
     
-    print_success "Built ${NAME} ${module_command_script}" "✏️"
-    print_success "Built ${NAME} ${entry_point_script}" "✏️"
+    print_success "Built ${MODULE_NAME} ${ENTRY_POINT_SCRIPT_NAME}" "✏️"
+    print_success "Built ${MODULE_NAME} ${MODULE_COMMAND_SCRIPT_NAME}" "✏️"
 }
 
 # =============================================================================

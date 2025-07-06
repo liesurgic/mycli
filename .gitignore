@@ -1,4 +1,3 @@
-.tmp
-.tmp/*
 .ds
 .DS_Store
+*.cli
