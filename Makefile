@@ -13,15 +13,12 @@ else
 endif
 
 build:
-	@echo "RUNNING COMMAND: ./build.sh $(name)"
 	@$(CLI_HOME)/build.sh $(name)
 
 package:
-	@echo "RUNNING COMMAND: ./package.sh $(name)"
 	@$(CLI_HOME)/package.sh $(name)
 
 deploy:
-	@echo "RUNNING COMMAND: ./deploy.sh $(name)"
 	@$(CLI_HOME)/deploy.sh $(name)
 
 install:
@@ -37,14 +34,11 @@ install:
 	
 
 uninstall:
-	@$(CLI_HOME)/uninstall.sh 
 	$(MAKE) clean name=lie
 
 clean:
-	@echo "RUNNING COMMAND: rm -r ./$(name).cli"
 	@rm -r ./$(name).cli
 
 shell:
-	@echo "RUNNING COMMAND: ./shell.sh $(MODULES_DIRECTORY)/$(name).cli/$(name).json"
 	@$(CLI_HOME)/shell.sh $(MODULES_DIRECTORY)/$(name).cli/$(name).json
 	@cat ~/.zshrc | grep lie

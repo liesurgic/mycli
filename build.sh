@@ -78,31 +78,15 @@ build_cmds_help() {
 ${cmd_name}_help() {
     echo "$cmd_name - $cmd_desc"
     echo ""
-    echo "Usage: $NAME $cmd_name [options] [args]"
+    echo "Usage: $NAME $cmd_name [options]"
     echo ""
 EOF
             
             # Add flags if they exist
             local flag_count="$(echo "$command" | jq '.flags | length')"
             if [ "$flag_count" -gt 0 ]; then
-                echo "    echo \"Flags:\""
-                echo "$command" | jq -r '.flags[] | "    echo \"  --\(.name)\(if .shorthand then " (-" + .shorthand + ")" else "" end)    \(.description)\""'
-                echo "    echo \"\""
-            fi
-            
-            # Add kwargs if they exist
-            local kwarg_count="$(echo "$command" | jq '.kwargs | length')"
-            if [ "$kwarg_count" -gt 0 ]; then
                 echo "    echo \"Options:\""
-                echo "$command" | jq -r '.kwargs[] | "    echo \"  --\(.name)=VALUE\(if .shorthand then " (-" + .shorthand + "=VALUE)" else "" end)    \(.description)\""'
-                echo "    echo \"\""
-            fi
-            
-            # Add args if they exist
-            local arg_count="$(echo "$command" | jq '.args | length')"
-            if [ "$arg_count" -gt 0 ]; then
-                echo "    echo \"Arguments:\""
-                echo "$command" | jq -r '.args[] | "    echo \"  \(.name)    \(.description)\""'
+                echo "$command" | jq -r '.flags[] | "    echo \"  --\(.name)\(if .shorthand then " (-" + .shorthand + ")" else "" end)    \(.description)\""'
                 echo "    echo \"\""
             fi
             
@@ -130,97 +114,22 @@ EOF
             
             cat << EOF
 ${cmd_name}() {
-    # Parse arguments
-    local args=()
-    local flags=()
-    local kwargs=()
-    
-    # Parse command line arguments
-    while [[ \$# -gt 0 ]]; do
-        case \$1 in
 EOF
             
-            # Add flag parsing
-            echo "$command" | jq -r '.flags[]? | "            --\(.name)|-\(.shorthand))" + "\n" + "                flags+=(\"\(.name)\")" + "\n" + "                ;;"'
-            
-            # Add kwarg parsing
-            echo "$command" | jq -r '.kwargs[]? | "            --\(.name)=*|-\(.shorthand)=*)" + "\n" + "                kwargs+=(\"\(.name)=\"$2)" + "\n" + "                shift" + "\n" + "                ;;"'
-            
-            cat << EOF
-            -*)
-                echo "Unknown option: \$1"
-                ${cmd_name}_help
-                exit 1
-                ;;
-            *)
-                args+=("\$1")
-                ;;
-        esac
-        shift
-    done
-    
-    # Set default values for flags
-EOF
-            
-            # Set default values for flags
-            echo "$command" | jq -r '.flags[]? | "    local \(.name)=false"'
-            
-            # Set default values for kwargs
-            echo "$command" | jq -r '.kwargs[]? | "    local \(.name)=\"\(.default // "")\""'
-            
-            # Set default values for args
-            echo "$command" | jq -r '.args[]? | "    local \(.name)=\"\(.default // "")\""'
-            
-            cat << EOF
-    
-    # Process flags
-EOF
-            
-            # Process flags
-            echo "$command" | jq -r '.flags[]? | "    if [[ \" ${flags[@]} \" =~ \" \(.name) \" ]]; then" + "\n" + "        \(.name)=true" + "\n" + "    fi"'
-            
-            cat << EOF
-    
-    # Process kwargs
-EOF
-            
-            # Process kwargs
-            echo "$command" | jq -r '.kwargs[]? | "    for kwarg in \"${kwargs[@]}\"; do" + "\n" + "        if [[ $kwarg == \(.name)=* ]]; then" + "\n" + "            \(.name)=\"${kwarg#\(.name)=}\"" + "\n" + "        fi" + "\n" + "    done"'
-            
-            cat << EOF
-    
-    # Process args
-EOF
-            
-            # Process args
-            local arg_index=0
-            while IFS= read -r arg_name; do
-                if [ -n "$arg_name" ]; then
-                    echo "    if [ \${#args[@]} -gt $arg_index ]; then"
-                    echo "        $arg_name=\"\${args[$arg_index]}\""
-                    echo "    fi"
-                    ((arg_index++))
+            # Add flag variables
+            local flag_index=1
+            while IFS= read -r flag_name; do
+                if [ -n "$flag_name" ]; then
+                    echo "    local ${flag_name}=\"\$$flag_index\""
+                    ((flag_index++))
                 fi
-            done < <(echo "$command" | jq -r '.args[]?.name // empty')
+            done < <(echo "$command" | jq -r '.flags[]?.name // empty')
             
+            # Get flag names for display
+            local flag_names="$(echo "$command" | jq -r '.flags[]?.name // empty' | tr '\n' ' ' | sed 's/ $//')"
             cat << EOF
-    
-    # Validate required arguments
-EOF
-            
-            # Validate required kwargs
-            echo "$command" | jq -r '.kwargs[]? | select(.required == true) | "    if [ -z \"$\(.name)\" ]; then" + "\n" + "        echo \"Error: --\(.name) is required\"" + "\n" + "        '${cmd_name}'_help" + "\n" + "        exit 1" + "\n" + "    fi"'
-            
-            # Validate required args
-            echo "$command" | jq -r '.args[]? | select(.required == true) | "    if [ -z \"$\(.name)\" ]; then" + "\n" + "        echo \"Error: \(.name) argument is required\"" + "\n" + "        '${cmd_name}'_help" + "\n" + "        exit 1" + "\n" + "    fi"'
-            
-            cat << EOF
-    
-    # Command implementation
     echo "Command '$cmd_name' not yet implemented"
-    echo "Flags: \${flags[@]}"
-    echo "Kwargs: \${kwargs[@]}"
-    echo "Args: \${args[@]}"
+    echo "Available flags: $flag_names"
 }
 
 EOF
@@ -263,69 +172,8 @@ EOF
     case "\$command" in
 EOF
     
-    # Add each command to the case statement with argument parsing
-    while IFS= read -r command; do
-        if [ -n "$command" ]; then
-            local cmd_name="$(echo "$command" | jq -r '.name')"
-            echo "        $cmd_name)"
-            echo "            # Parse arguments for $cmd_name"
-            echo "            local args=()"
-            echo "            local flags=()"
-            echo "            local kwargs=()"
-            echo "            "
-            echo "            # Parse command line arguments"
-            echo "            while [[ \$# -gt 0 ]]; do"
-            echo "                case \$1 in"
-            
-            # Add flag parsing
-            echo "$command" | jq -r '.flags[]? | "                    --\(.name)|-\(.shorthand))" + "\n" + "                        flags+=(\"\(.name)\")" + "\n" + "                        ;;"'
-            
-            # Add kwarg parsing
-            echo "$command" | jq -r '.kwargs[]? | "                    --\(.name)=*|-\(.shorthand)=*)" + "\n" + "                        kwargs+=(\"\(.name)=\"${1#*=})" + "\n" + "                        ;;"'
-            
-            echo "                    -*)"
-            echo "                        echo \"Unknown option: \$1\""
-            echo "                        ${cmd_name}_help"
-            echo "                        exit 1"
-            echo "                        ;;"
-            echo "                    *)"
-            echo "                        args+=(\"\$1\")"
-            echo "                        ;;"
-            echo "                esac"
-            echo "                shift"
-            echo "            done"
-            echo "            "
-            echo "            # Set default values for flags"
-            echo "$command" | jq -r '.flags[]? | "            local \(.name)=false"'
-            echo "$command" | jq -r '.kwargs[]? | "            local \(.name)=\"\(.default // "")\""'
-            echo "$command" | jq -r '.args[]? | "            local \(.name)=\"\(.default // "")\""'
-            echo "            "
-            echo "            # Process flags"
-            echo "$command" | jq -r '.flags[]? | "            if [[ \" ${flags[@]} \" =~ \" \(.name) \" ]]; then" + "\n" + "                \(.name)=true" + "\n" + "            fi"'
-            echo "            "
-            echo "            # Process kwargs"
-            echo "$command" | jq -r '.kwargs[]? | "            for kwarg in \"${kwargs[@]}\"; do" + "\n" + "                if [[ $kwarg == \(.name)=* ]]; then" + "\n" + "                    \(.name)=\"${kwarg#\(.name)=}\"" + "\n" + "                fi" + "\n" + "            done"'
-            echo "            "
-            echo "            # Process args"
-            local arg_index=0
-            while IFS= read -r arg_name; do
-                if [ -n "$arg_name" ]; then
-                    echo "            if [ \${#args[@]} -gt $arg_index ]; then"
-                    echo "                $arg_name=\"\${args[$arg_index]}\""
-                    echo "            fi"
-                    ((arg_index++))
-                fi
-            done < <(echo "$command" | jq -r '.args[]?.name // empty')
-            echo "            "
-            echo "            # Validate required arguments"
-            echo "$command" | jq -r '.kwargs[]? | select(.required == true) | "            if [ -z \"$\(.name)\" ]; then" + "\n" + "                echo \"Error: --\(.name) is required\"" + "\n" + "                '${cmd_name}'_help" + "\n" + "                exit 1" + "\n" + "            fi"'
-            echo "$command" | jq -r '.args[]? | select(.required == true) | "            if [ -z \"$\(.name)\" ]; then" + "\n" + "                echo \"Error: \(.name) argument is required\"" + "\n" + "                '${cmd_name}'_help" + "\n" + "                exit 1" + "\n" + "            fi"'
-            echo "            "
-            echo "            # Call the command function"
-            echo "            $cmd_name"
-            echo "            ;;"
-        fi
-    done < <(jq -c '.commands[]' "$JSON_CONFIG")
+    # Add each command to the case statement
+    jq -r '.commands[] | "        \(.name))" + "\n" + "            \(.name) \"$@\"" + "\n" + "            ;;"' "$JSON_CONFIG"
     
     cat << EOF
         help|--help|-h)

@@ -6,122 +6,19 @@
     "commands": [
         {
             "name": "init",
-            "description": "Initialize a new CLI project",
-            "flags": [
-                {
-                    "name": "force",
-                    "shorthand": "f",
-                    "description": "Force overwrite existing files",
-                    "type": "boolean",
-                    "default": false
-                }
-            ],
-            "kwargs": [
-                {
-                    "name": "name",
-                    "shorthand": "n",
-                    "description": "Name of the CLI project",
-                    "type": "string",
-                    "required": true
-                },
-                {
-                    "name": "description",
-                    "shorthand": "d",
-                    "description": "Description of the CLI project",
-                    "type": "string",
-                    "default": "A new CLI project"
-                }
-            ],
-            "args": [
-                {
-                    "name": "template",
-                    "description": "Template to use for initialization",
-                    "type": "string",
-                    "required": false,
-                    "default": "basic"
-                }
-            ]
+            "description": "Initialize a new CLI project"
         },
         {
             "name": "package",
-            "description": "Package json config into cli module",
-            "flags": [
-                {
-                    "name": "clean",
-                    "shorthand": "c",
-                    "description": "Clean build directory before packaging",
-                    "type": "boolean",
-                    "default": false
-                }
-            ],
-            "kwargs": [
-                {
-                    "name": "output", 
-                    "shorthand": "o",
-                    "description": "Output directory for the package",
-                    "type": "string",
-                    "default": "./"
-                }
-            ],
-            "args": [
-                {
-                    "name": "config",
-                    "description": "Config file or directory to package",
-                    "type": "string",
-                    "required": true
-                }
-            ]
+            "description": "Package json config into cli module"
         },
         {
             "name": "deploy",
-            "description": "deploy package to cli",
-            "flags": [
-                {
-                    "name": "global",
-                    "shorthand": "g",
-                    "description": "Install globally (requires sudo)",
-                    "type": "boolean",
-                    "default": false
-                },
-                {
-                    "name": "user",
-                    "shorthand": "u",
-                    "description": "Install for current user only",
-                    "type": "boolean",
-                    "default": true
-                }
-            ],
-            "kwargs": [],
-            "args": [
-                {
-                    "name": "package",
-                    "description": "Package to deploy",
-                    "type": "string",
-                    "required": true
-                }
-            ]
+            "description": "deploy package to cli"
         },
         {
             "name": "list",
-            "description": "List installed modules and commands",
-            "flags": [
-                {
-                    "name": "verbose",
-                    "shorthand": "v",
-                    "description": "Show detailed information",
-                    "type": "boolean",
-                    "default": false
-                },
-                {
-                    "name": "json",
-                    "shorthand": "j",
-                    "description": "Output in JSON format",
-                    "type": "boolean",
-                    "default": false
-                }
-            ],
-            "kwargs": [],
-            "args": []
+            "description": "List installed modules and commands"
         }
     ]
 } 
