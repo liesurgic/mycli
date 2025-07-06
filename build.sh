@@ -24,9 +24,9 @@ source "\$SCRIPT_DIR/utils.sh"
 EOF
 }
 
-build_source_cmds() {
+build_commands_source() {
     cat << EOF
-source "\$SCRIPT_DIR/cmds.sh"
+source "\$SCRIPT_DIR/${NAME}.sh"
 
 EOF
 }
@@ -199,28 +199,30 @@ EOF
 
 build() {
     set_globals "$1"
+    local cli="./${MODULE_NAME}/cli.sh"
+    local commands="./${MODULE_NAME}/${NAME}.sh"
 
     {
         build_header
-        build_source_cmds
+        build_commands_source
         build_help
         build_cmds_help
         build_dispatcher
         build_footer
         echo 'main "$@"'
-    } > "$BUILD"
+    } > "$cli"
 
     {
         build_header
         build_cmds
         build_footer
-    } > "$CMDS"
+    } > "${commands}"
 
-    chmod +x "$BUILD"
-    chmod +x "$CMDS"
+    chmod +x "$cli"
+    chmod +x "$commands"
     
-    print_success "Built ${NAME} ${CMDS}" "✏️"
-    print_success "Built ${NAME} ${BUILD}" "✏️"
+    print_success "Built ${NAME} ${commands}" "✏️"
+    print_success "Built ${NAME} ${cli}" "✏️"
 }
 
 # =============================================================================

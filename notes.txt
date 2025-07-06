@@ -1,0 +1,119 @@
+-e: Tests if a path exists (file or directory)
+-r: Tests if a file is readable
+-w: Tests if a file is writable
+-x: Tests if a file is executable
+-n: Tests if a string is non-empty (opposite of -z)
+-f: Tests if a path is a regular file
+-d: Tests if a path is a directory
+-s: Tests if a file exists and has size greater than zero
+-z: Tests if a string is empty
+
+Additional file test operators:
+-L: Tests if a path is a symbolic link
+-p: Tests if a path is a named pipe (FIFO)
+-S: Tests if a path is a socket
+-b: Tests if a path is a block device
+-c: Tests if a path is a character device
+-g: Tests if a file has its set-group-id (sgid) bit set
+-u: Tests if a file has its set-user-id (suid) bit set
+-k: Tests if a file has its sticky bit set
+
+Detailed explanations:
+
+-e: Tests if a path exists (file or directory)
+Example: if [ -e "$file" ]; then echo "File exists"; fi
+Use case: Check if any type of file/directory exists before operations
+
+-r: Tests if a file is readable
+Example: if [ -r "$file" ]; then cat "$file"; fi
+Use case: Check permissions before reading files
+
+-w: Tests if a file is writable
+Example: if [ -w "$file" ]; then echo "data" >> "$file"; fi
+Use case: Check permissions before writing to files
+
+-x: Tests if a file is executable
+Example: if [ -x "$script" ]; then ./"$script"; fi
+Use case: Check if script can be executed before running
+
+-n: Tests if a string is non-empty (opposite of -z)
+Example: if [ -n "$variable" ]; then echo "Variable has value"; fi
+Use case: Validate that required variables are set
+
+-f: Tests if a path is a regular file
+Example: if [ -f "$file" ]; then echo "Regular file"; fi
+Use case: Distinguish files from directories/devices
+
+-d: Tests if a path is a directory
+Example: if [ -d "$dir" ]; then cd "$dir"; fi
+Use case: Check if path is a directory before cd operations
+
+-s: Tests if a file exists and has size greater than zero
+Example: if [ -s "$file" ]; then echo "File has content"; fi
+Use case: Check if file is not empty before processing
+
+-z: Tests if a string is empty
+Example: if [ -z "$variable" ]; then echo "Variable is empty"; fi
+Use case: Check for empty variables or missing parameters
+
+-L: Tests if a path is a symbolic link
+Example: if [ -L "$link" ]; then echo "Symbolic link"; fi
+Use case: Handle symlinks differently from regular files
+
+-p: Tests if a path is a named pipe (FIFO)
+What it is: First In, First Out communication channel between processes
+Example: mkfifo mypipe && if [ -p mypipe ]; then echo "Named pipe"; fi
+Use case: Process communication, inter-process data transfer
+Real example: echo "data" > mypipe & cat mypipe
+
+-S: Tests if a path is a socket
+What it is: Network communication endpoint for client-server communication
+Example: if [ -S /var/run/mysqld/mysqld.sock ]; then echo "MySQL socket"; fi
+Use case: Check if service is running via socket file
+Real examples: /var/run/nginx.sock, /var/run/mysqld/mysqld.sock
+
+-b: Tests if a path is a block device
+What it is: Storage device that reads/writes data in blocks (random access)
+Example: if [ -b /dev/sda ]; then echo "Block device"; fi
+Use case: Distinguish storage devices from regular files
+Real examples: /dev/sda (hard drive), /dev/nvme0n1 (SSD), /dev/loop0 (mounted ISO)
+
+-c: Tests if a path is a character device
+What it is: Stream device that processes data character by character (sequential)
+Example: if [ -c /dev/tty ]; then echo "Character device"; fi
+Use case: Handle I/O streams and terminals
+Real examples: /dev/tty (terminal), /dev/null (black hole), /dev/zero (infinite zeros), /dev/random (random data)
+
+-g: Tests if a file has its set-group-id (sgid) bit set
+Example: if [ -g "$file" ]; then echo "SGID bit set"; fi
+Use case: Check special permissions, files that run with group privileges
+
+-u: Tests if a file has its set-user-id (suid) bit set
+Example: if [ -u "$file" ]; then echo "SUID bit set"; fi
+Use case: Check special permissions, files that run with owner privileges
+
+-k: Tests if a file has its sticky bit set
+Example: if [ -k "$dir" ]; then echo "Sticky bit set"; fi
+Use case: Check if directory has sticky bit (only owner can delete files)
+
+Quick comparison table:
+Type          | Purpose                    | Access      | Examples
+Named Pipe    | Process communication     | FIFO        | mkfifo mypipe
+Socket        | Network communication     | Bidirectional| /var/run/mysql.sock
+Block Device  | Storage                   | Random       | /dev/sda, /dev/sdb
+Character Dev | I/O streams               | Sequential   | /dev/tty, /dev/null
+
+Safe file handling example:
+if [ -f "$file" ]; then
+    echo "Regular file"
+elif [ -p "$file" ]; then
+    echo "Named pipe"
+elif [ -S "$file" ]; then
+    echo "Socket"
+elif [ -b "$file" ]; then
+    echo "Block device"
+elif [ -c "$file" ]; then
+    echo "Character device"
+else
+    echo "Something else"
+fi

@@ -4,27 +4,38 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
-set_globals config.json
 
-print_info "packing config.json"
-./package.sh config.json
+set_globals ./lie.json
 
-print_info "using generated cli.sh as main entry point"
-cp .tmp/$NAME/cli.sh .tmp/$NAME/$NAME.sh
+copy_file() {
+    local file="$1"
+    print_info "Added ${file} to package"
+    if [ ! -f "$file" ]; then
+        print_error "${file} is not a file"
+        return 1
+    fi
+    cp "$file" ./${MODULE_NAME}/ 
+}
 
-print_info "copying cmds.sh for sourcing"
-cp cmds.sh .tmp/$NAME/cmds.sh
+if [ ! -d "${MODULE_NAME}" ]; then
+    print_error "${MODULE_NAME} is not a dir"
+fi
 
-print_info "copying init.sh .tmp/${NAME}/init.sh"
-cp init.sh .tmp/$NAME/init.sh
+./package.sh $JSON_CONFIG
 
-print_info "copying package.sh .tmp/${NAME}/package.sh"
-cp package.sh .tmp/$NAME/package.sh
+copy_file lie.json
+copy_file lie.sh
+copy_file init.sh
+copy_file package.sh
+copy_file deploy.sh
 
-print_info "copying deploy.sh .tmp/${NAME}/deploy.sh"
-cp deploy.sh .tmp/$NAME/deploy.sh
+./deploy.sh ./${MODULE_NAME}/${NAME}.json
 
-print_info "deploying .tmp/${NAME}/${NAME}.json"
-./deploy.sh .tmp/$NAME/$NAME.json
+rm -r ./${MODULE_NAME}
+
+
+./shell.sh ${MODULE_HOME}/${NAME}.json
 
 source ~/.zshrc 
+
+cat ~/.zshrc  | grep ${NAME}
