@@ -14,20 +14,20 @@
                     "description": "Name of the CLI project"
                 },
                 {
+                    "name": "description",
+                    "shorthand": "d",
+                    "description": "Description of the CLI project"
+                },
+                {
                     "name": "force",
                     "shorthand": "f",
                     "description": "Force overwrite existing files"
-                },
-                {
-                    "name": "template",
-                    "shorthand": "t",
-                    "description": "Template to use (basic, advanced, minimal)"
                 }
             ]
         },
         {
             "name": "package",
-            "description": "Package the current CLI project",
+            "description": "Package json config into cli module",
             "flags": [
                 {
                     "name": "output", 
@@ -54,27 +54,6 @@
                     "name": "user",
                     "shorthand": "u",
                     "description": "Install for current user only"
-                }
-            ]
-        },
-        {
-            "name": "create",
-            "description": "Create a new module or command",
-            "flags": [
-                {
-                    "name": "module",
-                    "shorthand": "m",
-                    "description": "Create a new module"
-                },
-                {
-                    "name": "command",
-                    "shorthand": "c",
-                    "description": "Create a new command"
-                },
-                {
-                    "name": "template",
-                    "shorthand": "t",
-                    "description": "Template to use"
                 }
             ]
         },
