@@ -7,10 +7,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
 
 deploy() {
-    set_globals "$1"
     local force="$2"
 
-    print_info "Deploying $NAME"
+    print_info "Deploying $NAME in $MODULE_NAME to $MODULE_HOME"
+
+    if [ -z "$MODULE_HOME" ]; then 
+        print_error "Module home is not set" 
+        return 1
+    fi
 
     # Check if module already exists
     if [ -d "$MODULE_HOME" ] && [ "$force" != "true" ]; then
@@ -21,7 +25,7 @@ deploy() {
 
     # Create module directory
     if [ "$force" = "true" ]; then
-        print_info "Force overwriting existing module"
+        print_info "Force overwriting existing module ${MODULE_HOME}"
         rm -rf "$MODULE_HOME"
     fi
     
@@ -33,14 +37,13 @@ deploy() {
     print_info "Making scripts executable"
     chmod +x "$MODULE_HOME"/*.sh
 
-    print_success "Deployed ${NAME} to ${MODULE_HOME}"
+    print_success "Deployed ${MODULE_NAME} to ${MODULE_HOME}"
 }
 
-# Check if we have a config file argument
-if [ -n "$1" ] && [ -f "$1" ]; then
-    deploy "$1"
+
+if entry_point "$1"; then
+    deploy
+    exit 0
 else
-    print_error "Config file not found or not provided"
-    echo "Usage: $0 <config_file>"
     exit 1
-fi 
+fi

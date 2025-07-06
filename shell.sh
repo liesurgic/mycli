@@ -8,7 +8,7 @@ source "$SCRIPT_DIR/utils.sh"
 
 
 shell() {
-    set_globals "$1"
+    set_globals
     local shell_rc="$HOME/.zshrc"
     local alias="alias ${NAME}='${MODULE_HOME}/cli.sh'"
     
@@ -34,11 +34,7 @@ shell() {
     print_info "Run 'source ~/.zshrc' or restart your terminal to use ${NAME} CLI"
 }
 
-# Check if we have a config file argument
-if [ -n "$1" ] && [ -f "$1" ]; then
-    shell "$1"
+if entry_point "$1"; then
+    shell
+    exit 0
 else
-    print_error "Config file not found or not provided"
-    echo "Usage: $0 <config_file>"
-    exit 1
-fi 

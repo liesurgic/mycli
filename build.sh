@@ -47,7 +47,7 @@ build_help() {
 help() {
     echo "$NAME - $DESCRIPTION"
     echo ""
-    echo "Usage: $ALIAS <command> [options]"
+    echo "Usage: $NAME <command> [options]"
     echo ""
     echo "Commands:"
 EOF
@@ -57,8 +57,8 @@ EOF
     
     cat << EOF
     echo ""
-    echo "Run '$ALIAS <command> help' for detailed help on a specific command."
-    echo "Run '$ALIAS <command>' to execute a command."
+    echo "Run '$NAME <command> help' for detailed help on a specific command."
+    echo "Run '$NAME <command>' to execute a command."
 }
 
 EOF
@@ -78,7 +78,7 @@ build_cmds_help() {
 ${cmd_name}_help() {
     echo "$cmd_name - $cmd_desc"
     echo ""
-    echo "Usage: $ALIAS $cmd_name [options]"
+    echo "Usage: $NAME $cmd_name [options]"
     echo ""
 EOF
             
@@ -92,7 +92,7 @@ EOF
             
             cat << EOF
     echo "Examples:"
-    echo "  $ALIAS $cmd_name"
+    echo "  $NAME $cmd_name"
 }
 
 EOF
@@ -173,7 +173,7 @@ EOF
     cat << EOF
                     *)
                         echo "Unknown command: \$1"
-                        echo "Run '$ALIAS help' for available commands."
+                        echo "Run '$NAME help' for available commands."
                         exit 1
                         ;;
                 esac
@@ -184,7 +184,7 @@ EOF
             ;;
         *)
             echo "Unknown command: \$command"
-            echo "Run '$ALIAS help' for available commands."
+            echo "Run '$NAME help' for available commands."
             exit 1
             ;;
     esac
@@ -198,9 +198,8 @@ EOF
 # =============================================================================
 
 build() {
-    set_globals "$1"
-    local cli="./${MODULE_NAME}/cli.sh"
-    local commands="./${MODULE_NAME}/${NAME}.sh"
+    local entry_point_script="./${MODULE_NAME}/${ENTRY_POINT_SCRIPT_NAME}"
+    local commands="./${MODULE_NAME}/${MODULE_COMMAND_SCRIPT_NAME}"
 
     {
         build_header
@@ -210,7 +209,7 @@ build() {
         build_dispatcher
         build_footer
         echo 'main "$@"'
-    } > "$cli"
+    } > "$entry_point_script"
 
     {
         build_header
@@ -218,22 +217,20 @@ build() {
         build_footer
     } > "${commands}"
 
-    chmod +x "$cli"
+    chmod +x "$entry_point_script"
     chmod +x "$commands"
     
-    print_success "Built ${NAME} ${commands}" "✏️"
-    print_success "Built ${NAME} ${cli}" "✏️"
+    print_success "Built ${NAME} ${module_command_script}" "✏️"
+    print_success "Built ${NAME} ${entry_point_script}" "✏️"
 }
 
 # =============================================================================
 # EXECUTION
 # =============================================================================
 
-# Check if we have a config file argument
-if [ -n "$1" ] && [ -f "$1" ]; then
-    build "$1"
+if entry_point "$1"; then
+    build
+    exit 0
 else
-    print_error "Config file not found or not provided"
-    echo "Usage: $0 <config_file>"
     exit 1
-fi 
+fi

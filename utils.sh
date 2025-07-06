@@ -1,17 +1,28 @@
 #!/opt/homebrew/bin/bash
 
-# LIE_HOME="$HOME/.lie"
-# MODULES_HOME="${LIE_HOME}/modules"
+LIE_HOME="$HOME/.lie"
+MODULES_DIRECTORY="${LIE_HOME}/modules"
 
-# SCRIPT_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 JSON_CONFIG=""
 NAME=""
-ALIAS=""
 DESCRIPTION=""
 VERSION=""
-OUTPUT=""
-MODULE=""
+MODULE_NAME=""
+ENTRY_POINT_SCRIPT_NAME=""
+MODULE_HOME=""
+MODULE_ENTRY_POINT=""
+MODULE_COMMAND_SCRIPT=""
+
+
+if [ -f "$SCRIPT_HOME/lie.sh" ]; then
+    CLI_HOME="${SCRIPT_HOME}"
+else
+    CLI_HOME="${LIE_HOME}/modules/lie.cli"
+fi
+
+
+UTILS_SCRIPT="${CLI_HOME}/utils.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -28,7 +39,7 @@ print_log() {
 }
 
 print_info() {
-    print_log "$BLUE" "$1" "${2:-⦿}"
+    print_log "$BLUE" "$1" "${2:-⦿}" >&2
 }
 
 print_completed() {
@@ -38,15 +49,69 @@ print_completed() {
 }
 
 print_success() {
-    print_log "${GREEN}" "$1" "${2:-✅}"
+    print_log "${GREEN}" "$1" "${2:-✅}" >&2
 }
 
 print_error() {
-    print_log "${GREEN}" "$1" "${2:-❌}"
+    print_log "${GREEN}" "$1" "${2:-❌}" >&2
 }
 
 print_warn() {
-    print_log "${YELLOW}" "$1" "${2:-⚠️}"
+    print_log "${YELLOW}" "$1" "${2:-⚠️}" >&2
+}
+
+# Smart argument parser
+parse_config_arg() {
+    local arg="$1"
+    local config_file=""
+    
+    if [ -z "$arg" ]; then
+        print_error "No argument provided"
+        return 1
+    fi
+    
+    # Case 1: Ends with .json - use as-is
+    if [[ "$arg" == *.json ]]; then
+        if [ -f "$arg" ]; then
+            config_file="$arg"
+            print_info "Using JSON config file: $config_file"
+        else
+            print_error "JSON file not found: $arg"
+            return 1
+        fi
+    
+    # Case 2: Ends with .cli - check if directory and find .json
+    elif [[ "$arg" == *.cli ]]; then
+        if [ -d "$arg" ]; then
+            local name="${arg%.cli}"  # Remove .cli suffix
+            local json_file="$arg/${name##*/}.json"  # Get just the name part
+            
+            if [ -f "$json_file" ]; then
+                config_file="$json_file"
+                print_info "Found config in .cli directory: $config_file"
+            else
+                print_error "No .json file found in $arg directory"
+                return 1
+            fi
+        else
+            print_error ".cli directory not found: $arg"
+            return 1
+        fi
+    
+    # Case 3: Plain string - look for name.json in current directory
+    else
+        local json_file="./$arg.json"
+        if [ -f "$json_file" ]; then
+            config_file="$json_file"
+            print_info "Using config file from current directory: $config_file"
+        else
+            print_error "No config file found: $json_file"
+            return 1
+        fi
+    fi
+    
+    echo "$config_file"
+    return 0
 }
 
 validate_config() {
@@ -101,31 +166,47 @@ validate_config() {
 
 set_globals() {
     if [ -z "$JSON_CONFIG" ]; then
-        # Validate config first
-        if ! validate_config "$1"; then
+        # Parse the argument to get the config file
+        local config_file=$(parse_config_arg "$1")
+        if [ $? -ne 0 ]; then
             return 1
         fi
         
-        JSON_CONFIG="$1"
+        # Validate config first
+        if ! validate_config "$config_file"; then
+            return 1
+        fi
+        
+        JSON_CONFIG="$config_file"
         NAME="$(jq -r '.name' "$JSON_CONFIG")"
         DESCRIPTION="$(jq -r '.description' "$JSON_CONFIG")"
         VERSION="$(jq -r '.version' "$JSON_CONFIG")"
+
         MODULE_NAME="${NAME}.cli"
-
-
-        LIE_HOME="$HOME/.lie"
-
-        if [ -f "$SCRIPT_HOME/lie.sh" ]; then
-            CLI_HOME="${SCRIPT_HOME}"
-        else
-            CLI_HOME="${LIE_HOME}/modules/lie.cli"
-        fi
-
-        UTILS_SCRIPT="$CLI_HOME/utils.sh"
-        BUILD_SCRIPT="$CLI_HOME/build.sh"
-        PACKAGE_SCRIPT="$CLI_HOME/package.sh"
-        DEPLOY_SCRIPT="$CLI_HOME/deploy.sh"
-        SHELL_SCRIPT="$CLI_HOME/shell.sh"
-
+        ENTRY_POINT_SCRIPT_NAME="cli.sh"
+        MODULE_COMMAND_SCRIPT_NAME="${NAME}.sh"
+        MODULE_HOME="${MODULES_DIRECTORY}/${MODULE_NAME}"
+        MODULE_ENTRY_POINT="${MODULE_HOME}/${ENTRY_POINT_SCRIPT_NAME}"
+        MODULE_COMMAND_SCRIPT="${MODULE_HOME}/${MODULE_COMMAND_SCRIPT_NAME}"
     fi   
+}
+
+entry_point() {
+    if [ -n "$1" ]; then
+        if set_globals "$1"; then
+            exit 0
+        else
+            print_error "Invalid argument: $1"
+            echo "Usage: $0 <config_file|config_dir|name>"
+            echo "Examples:"
+            echo "  $0 lie.json          # Direct JSON file"
+            echo "  $0 lie.cli           # Directory containing config"
+            echo "  $0 lie               # Look for lie.json in current dir"
+            exit 1
+        fi
+    else
+        print_error "No argument provided"
+        echo "Usage: $0 <config_file|config_dir|name>"
+        exit 1
+    fi 
 }
