@@ -8,20 +8,63 @@ source "$SCRIPT_DIR/utils.sh"
 
 # Command impl
 init() {
-    make -C "${SCRIPT_DIR}" init name="$1"
-    $SCRIPT_DIR/init.sh "$1"
+    # Use the parsed variables
+    if [ "$force" = "true" ]; then
+        echo "Force flag is set - would overwrite existing files"
+    fi
+    
+    if [ -n "$name" ]; then
+        echo "Project name: $name"
+    fi
+    
+    if [ -n "$description" ]; then
+        echo "Project description: $description"
+    fi
+    
+    if [ -n "$template" ]; then
+        echo "Template: $template"
+    fi
+    
+    # Use the parsed config argument or default to current directory
+    local config_arg="${config:-.}"
+    make -C "${SCRIPT_DIR}" init name="$config_arg"
+    $SCRIPT_DIR/init.sh "$config_arg"
 }
 
 package() {
-    make -C "${SCRIPT_DIR}" package name="$1"
+    # Use the parsed config argument or default to current directory
+    local config_arg="${config:-.}"
+    
+    # Use parsed flags and kwargs
+    if [ "$clean" = "true" ]; then
+        echo "Clean flag is set - would clean build directory"
+    fi
+    
+    if [ -n "$output" ] && [ "$output" != "./" ]; then
+        echo "Output directory: $output"
+    fi
+    
+    make -C "${SCRIPT_DIR}" package name="$config_arg"
 }
 
 deploy() {
-    make -C "${SCRIPT_DIR}" deploy name="$1"
+    # Use the parsed package argument or default to current directory
+    local package_arg="${package:-.}"
+    make -C "${SCRIPT_DIR}" deploy name="$package_arg"
 }
 
 list() {
-    make -C "${SCRIPT_DIR}" list name="$1"
+    # Use parsed flags
+    if [ "$verbose" = "true" ]; then
+        echo "Verbose flag is set - showing detailed information"
+    fi
+    
+    if [ "$json" = "true" ]; then
+        echo "JSON flag is set - outputting in JSON format"
+    fi
+    
+    # List command doesn't need arguments
+    make -C "${SCRIPT_DIR}" list
 }
 
 uninstall() {

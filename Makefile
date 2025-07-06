@@ -32,7 +32,6 @@ install:
 	@ls ./lie.cli/
 	$(MAKE) deploy name=lie
 	$(MAKE) shell name=lie
-	$(MAKE) clean name=lie
 
 
 	
