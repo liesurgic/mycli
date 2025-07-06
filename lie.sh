@@ -8,23 +8,22 @@ source "$SCRIPT_DIR/utils.sh"
 
 # Command impl
 init() {
-    make -c "${SCRIPT_DIR}" init "$1"
+    make -C "${SCRIPT_DIR}" init name="$1"
     $SCRIPT_DIR/init.sh "$1"
 }
 
 package() {
-    make -c "${SCRIPT_DIR}" package "$1"
-    make -c "${SCRIPT_DIR}" build "$1"
+    make -C "${SCRIPT_DIR}" package name="$1"
 }
 
 deploy() {
-    make -c "${SCRIPT_DIR}" deploy "$1"
+    make -C "${SCRIPT_DIR}" deploy name="$1"
 }
 
 list() {
-    make -c "${SCRIPT_DIR}" list "$1"
+    make -C "${SCRIPT_DIR}" list name="$1"
 }
 
 uninstall() {
-    make -c "${SCRIPT_DIR}" uninstall "$1"
+    make -C "${SCRIPT_DIR}" uninstall
 }
