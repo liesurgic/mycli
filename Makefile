@@ -20,6 +20,7 @@ deploy:
 
 install:
 	$(MAKE) package name=lie
+	$(MAKE) build name=lie
 	@cp *.sh ./lie.cli/
 	@ls ./lie.cli/
 	$(MAKE) deploy name=lie
