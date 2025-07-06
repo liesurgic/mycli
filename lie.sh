@@ -2,8 +2,21 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/utils.sh"
+LIE_HOME="$HOME/.lie"
+
+if [ -f "$SCRIPT_HOME/lie.sh" ]; then
+    CLI_HOME="${SCRIPT_HOME}"
+else
+    CLI_HOME="${LIE_HOME}/modules/lie.cli"
+fi
+
+UTILS_SCRIPT="$CLI_HOME/utils.sh"
+BUILD_SCRIPT="$CLI_HOME/build.sh"
+PACKAGE_SCRIPT="$CLI_HOME/package.sh"
+DEPLOY_SCRIPT="$CLI_HOME/deploy.sh"
+SHELL_SCRIPT="$CLI_HOME/shell.sh"
+
+source "${UTILS_SCRIPT}"
 
 init() {
     local name="$1"
@@ -15,7 +28,7 @@ init() {
 package() {
     local output="$1"
     local clean="$2"
-    $SCRIPT_DIR/package.sh "$1"
+    $PACKAGE_SCRIPT "$1"
 }
 
 deploy() {
@@ -25,11 +38,13 @@ deploy() {
         package="$1"
         print_info "deploying package $package"
         name="${package%.*}"
+
         print_info "extracted name $name"
         config="${package}/${name}.json"
+        
         print_info "extracted json config $config"
-        $SCRIPT_HOME/deploy.sh "$1"
-        $SCRIPT_HOME/shell.sh "$1"
+        $DEPLOY_SCRIPT "$1"
+        $SHELL_SCRIPT "$1"
     else
         print_error "Package directory not found or not provided"
         echo "Usage: $0 <package_directory>"

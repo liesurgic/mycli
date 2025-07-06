@@ -7,34 +7,38 @@ source "$SCRIPT_DIR/utils.sh"
 
 set_globals ./lie.json
 
-copy_file() {
-    local file="$1"
-    print_info "Added ${file} to package"
-    if [ ! -f "$file" ]; then
-        print_error "${file} is not a file"
-        return 1
-    fi
-    cp "$file" ./${MODULE_NAME}/ 
-}
+# copy_file() {
+#     local file="$1"
+#     print_info "Added ${file} to package"
+#     if [ ! -f "$file" ]; then
+#         print_error "${file} is not a file"
+#         return 1
+#     fi
+#     cp "$file" ./${MODULE_NAME}/ 
+# }
+
+$PACKAGE_SCRIPT $JSON_CONFIG
 
 if [ ! -d "${MODULE_NAME}" ]; then
     print_error "${MODULE_NAME} is not a dir"
 fi
 
-./package.sh $JSON_CONFIG
 
-copy_file lie.json
-copy_file lie.sh
-copy_file init.sh
-copy_file package.sh
-copy_file deploy.sh
+cp *.sh ./${MODULE_NAME}/ 
+ls ./${MODULE_NAME}/ 
+# copy_file lie.json
+# copy_file lie.sh
+# copy_file init.sh
+# copy_file package.sh
+# copy_file deploy.sh
+# copy_file shell.sh
 
-./deploy.sh ./${MODULE_NAME}/${NAME}.json
+$DEPLOY_SCRIPT ./${MODULE_NAME}/${NAME}.json
 
-rm -r ./${MODULE_NAME}
+rm -r ./*.cli
 
 
-./shell.sh ${MODULE_HOME}/${NAME}.json
+$SHELL_SCRIPT ${MODULE_HOME}/${MODULE_NAME}/${NAME}.json
 
 source ~/.zshrc 
 

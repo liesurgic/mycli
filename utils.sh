@@ -1,6 +1,9 @@
 #!/opt/homebrew/bin/bash
 
-LIE_HOME="$HOME/.lie"
+# LIE_HOME="$HOME/.lie"
+# MODULES_HOME="${LIE_HOME}/modules"
+
+# SCRIPT_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 JSON_CONFIG=""
 NAME=""
@@ -94,6 +97,8 @@ validate_config() {
     return 0
 }
 
+
+
 set_globals() {
     if [ -z "$JSON_CONFIG" ]; then
         # Validate config first
@@ -105,12 +110,22 @@ set_globals() {
         NAME="$(jq -r '.name' "$JSON_CONFIG")"
         DESCRIPTION="$(jq -r '.description' "$JSON_CONFIG")"
         VERSION="$(jq -r '.version' "$JSON_CONFIG")"
-        
-        # PACKAGE="${NAME}.cli"
-
-        # MODULE_SCRIPT="$PACKAGE/${NAME}.sh"
-
         MODULE_NAME="${NAME}.cli"
-        MODULE_HOME="$LIE_HOME/modules/${MODULE_NAME}"
+
+
+        LIE_HOME="$HOME/.lie"
+
+        if [ -f "$SCRIPT_HOME/lie.sh" ]; then
+            CLI_HOME="${SCRIPT_HOME}"
+        else
+            CLI_HOME="${LIE_HOME}/modules/lie.cli"
+        fi
+
+        UTILS_SCRIPT="$CLI_HOME/utils.sh"
+        BUILD_SCRIPT="$CLI_HOME/build.sh"
+        PACKAGE_SCRIPT="$CLI_HOME/package.sh"
+        DEPLOY_SCRIPT="$CLI_HOME/deploy.sh"
+        SHELL_SCRIPT="$CLI_HOME/shell.sh"
+
     fi   
 }
